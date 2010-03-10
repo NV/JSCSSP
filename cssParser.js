@@ -333,6 +333,12 @@ var CSSParser = {
   mToken : null,
   mLookAhead : null,
 
+  init: function(aString) {
+    this.mToken = null;
+    this.mLookAhead = null;
+    CSSScanner.init(aString);
+  },
+
   getToken: function(aSkipWS, aSkipComment) {
     if (this.mLookAhead) {
       this.mToken = this.mLookAhead;
@@ -396,25 +402,24 @@ var CSSParser = {
 
   addUnknownRule: function(aSheet, aString) {
     var rule = new jscsspErrorRule();
-    rule.cssText = aString;
+    rule.parsedCssText = aString;
     aSheet.cssRules.push(rule);
   },
 
   addWhitespace: function(aSheet, aString) {
     var rule = new jscsspWhitespace();
-    rule.cssText = aString;
+    rule.parsedCssText = aString;
     aSheet.cssRules.push(rule);
   },
 
   addComment: function(aSheet, aString) {
     var rule = new jscsspComment();
-    rule.cssText = aString;
+    rule.parsedCssText = aString;
     aSheet.cssRules.push(rule);
   },
 
   parseCharsetRule: function(aToken, aSheet) {
     var s = aToken.value;
-    var valid = false;
     var token = this.getToken(false, false);
     if (token.isNotNull()
         && token.isWhiteSpace(" ")) {
@@ -426,17 +431,17 @@ var CSSParser = {
         token = this.getToken(false, false);
         if (token.isSymbol(";")) {
           s += token.value;
-          valid = true;
           var rule = new jscsspCharsetRule();
           rule.encoding = encoding;
-          rule.cssText = s;
+          rule.parsedCssText = s;
           aSheet.cssRules.push(rule);
+          return true;
         }
       }
     }
 
-    if (!valid)
-      this.addUnknownAtRule(aSheet, s);
+    this.addUnknownAtRule(aSheet, s);
+    return false;
   },
 
   parseImportRule: function(aToken, aSheet) {
@@ -468,7 +473,7 @@ var CSSParser = {
         s += ";"
         CSSScanner.forgetState();
         var rule = new jscsspImportRule();
-        rule.cssText = s;
+        rule.parsedCssText = s;
         rule.href = href;
         rule.media = media;
         aSheet.cssRules.push(rule);
@@ -543,7 +548,7 @@ var CSSParser = {
           s += ";";
           CSSScanner.forgetState();
           var rule = new jscsspNamespaceRule();
-          rule.cssText = s;
+          rule.parsedCssText = s;
           rule.prefix = prefix;
           rule.url = url;
           aSheet.cssRules.push(rule);
@@ -584,7 +589,7 @@ var CSSParser = {
     if (valid) {
       CSSScanner.forgetState();
       var rule = new jscsspFontFaceRule();
-      rule.cssText = s;
+      rule.parsedCssText = s;
       rule.descriptors = descriptors;
       aSheet.cssRules.push(rule)
       return true;
@@ -629,7 +634,7 @@ var CSSParser = {
     if (valid) {
       CSSScanner.forgetState();
       var rule = new jscsspPageRule();
-      rule.cssText = s;
+      rule.parsedCssText = s;
       rule.pageSelector = pageSelector;
       rule.declarations = declarations;
       aSheet.cssRules.push(rule)
@@ -705,17 +710,17 @@ var CSSParser = {
           var decl = new jscsspDeclaration();
           decl.property = descriptor;
           decl.value = value;
-          decl.cssText = descriptor + ": " + value + ";";
+          decl.parsedCssText = descriptor + ": " + value + ";";
           aDecl.push(decl);
-          return decl.cssText;
+          return decl.parsedCssText;
         }
       }
     } else if (aToken.isComment()) {
       CSSScanner.forgetState();
       var comment = new jscsspComment();
-      comment.cssText = aToken.value;
+      comment.parsedCssText = aToken.value;
       aDecl.push(comment);
-      return comment.cssText;
+      return comment.parsedCssText;
     }
 
     // we have an error here, let's skip it
@@ -792,7 +797,7 @@ var CSSParser = {
         if (token.isComment()) {
           s += " " + token.value;
           var comment = new jscsspComment();
-          comment.cssText = token.value;
+          comment.parsedCssText = token.value;
           mediaRule.cssRules.push(comment);
         } else if (token.isSymbol("}")) {
           valid = true;
@@ -807,7 +812,7 @@ var CSSParser = {
     }
     if (valid) {
       CSSScanner.forgetState();
-      mediaRule.cssText = s;
+      mediaRule.parsedCssText = s;
       aSheet.cssRules.push(mediaRule);
       return true;
     }
@@ -817,7 +822,7 @@ var CSSParser = {
 
   parseStyleRule: function(aToken, aCssRules) {
     // first let's see if we have a selector here...
-    var selector = this.parseSelector(aToken);
+    var selector = this.parseSelector(aToken, false);
     var valid = false;
     var declarations = [];
     if (selector) {
@@ -841,24 +846,29 @@ var CSSParser = {
     }
     if (valid) {
       var rule = new jscsspStyleRule();
-      rule.cssText = s;
+      rule.parsedCssText = s;
       rule.declarations = declarations;
-      rule.selectorText = selector;
+      rule.mSelectorText = selector;
       aCssRules.cssRules.push(rule);
       return s;
     }
     return "";
   },
 
-  parseSelector: function(aToken) {
-    CSSScanner.preserveState();
+  parseSelector: function(aToken, aParseSelectorOnly) {
     var s = "";
     var isFirstInChain = true;
     var token = aToken;
     var valid = false;
     var combinatorFound = false;
-    while (token.isNotNull()) {
-      if (token.isSymbol("{")) {
+    while (true) {
+      if (!token.isNotNull()) {
+        if (aParseSelectorOnly)
+          return s;
+        return "";
+      }
+
+      if (!aParseSelectorOnly && token.isSymbol("{")) {
         // end of selector
         this.ungetToken();
         valid = true;
@@ -902,10 +912,8 @@ var CSSParser = {
     }
 
     if (valid) {
-      CSSScanner.forgetState();
       return s;
     }
-    CSSScanner.forgetState();
     return "";
   },
 
@@ -1047,8 +1055,8 @@ var CSSParser = {
     if (!aString)
       return null; // early way out if we can
 
+    this.init(aString);
     var sheet = new jscsspStylesheet();
-    CSSScanner.init(aString);
 
     // @charset can only appear at first char of the stylesheet
     var token = this.getToken(false, false);
@@ -1154,7 +1162,7 @@ jscsspToken.prototype = {
 
   _isOfType: function (aType, aValue)
   {
-    return (this.type == aType && (!aValue || this.value == aValue));
+    return (this.type == aType && (!aValue || this.value.toLowerCase() == aValue));
   },
 
   isWhitespace: function(w)
@@ -1242,10 +1250,11 @@ const kJscsspWHITE_SPACE    = 102;
 
 const kJscsspSTYLE_DECLARATION = 1000;
 
+var gTABS = "";
+
 function jscsspStylesheet()
 {
   this.cssRules = [];
-  this.ownerRule = null;
 }
 
 jscsspStylesheet.prototype = {
@@ -1265,54 +1274,162 @@ jscsspStylesheet.prototype = {
     catch(e) {
       dump("DOMException: jscsspStylesheet.insertRule\n")
     }
+  },
+
+  get cssText() {
+    var rv = "";
+    for (var i = 0; i < this.cssRules.length; i++)
+      rv += this.cssRules[i].cssText + "\n";
+    return rv;
   }
 };
+
+/* kJscsspCHARSET_RULE */
 
 function jscsspCharsetRule()
 {
   this.type = kJscsspCHARSET_RULE;
   this.encoding = null;
-  this.cssText = null;
+  this.parsedCssText = null;
 }
 
+jscsspCharsetRule.prototype = {
+
+  get cssText() {
+    return "@charset " + this.encoding + ";";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(false, false);
+    if (token.isAtRule("@charset")) {
+      if (CSSParser.parseCharsetRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.encoding = newRule.encoding;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspUNKNOWN_RULE */
 
 function jscsspErrorRule()
 {
   this.type = kJscsspUNKNOWN_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
 }
+
+jscsspErrorRule.prototype = {
+  get cssText() {
+    return this.parsedCssText;
+  }
+};
+
+/* kJscsspCOMMENT */
 
 function jscsspComment()
 {
   this.type = kJscsspCOMMENT;
-  this.cssText = null;
+  this.parsedCssText = null;
 }
+
+jscsspComment.prototype = {
+  get cssText() {
+    return this.parsedCssText;
+  },
+
+  set cssText(val) {
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, false);
+    if (token.isComment())
+      this.parsedCssText = token.value;
+    else
+      throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspWHITE_SPACE */
 
 function jscsspWhitespace()
 {
   this.type = kJscsspWHITE_SPACE;
-  this.cssText = null;
+  this.parsedCssText = null;
 }
+
+/* kJscsspIMPORT_RULE */
 
 function jscsspImportRule()
 {
   this.type = kJscsspIMPORT_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
+  this.href = null;
   this.media = []; 
 }
+
+jscsspImportRule.prototype = {
+  get cssText() {
+    var mediaString = this.media.join(", ");
+    return "@import " + (mediaString ? mediaString + " " : "")
+                      + this.href
+                      + ";";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (token.isAtRule("@import")) {
+      if (CSSParser.parseImportRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.href = newRule.href;
+        this.media = newRule.media;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspNAMESPACE_RULE */
 
 function jscsspNamespaceRule()
 {
   this.type = kJscsspNAMESPACE_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
   this.prefix = null;
   this.url = null;
 }
 
-function jscsspDeclarations()
-{
-  this.declarations = [];
-}
+jscsspNamespaceRule.prototype = {
+  get cssText() {
+    return "@namespace" + (this.prefix ? this.prefix + " ": "")
+                        + this.url
+                        + ";";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (token.isAtRule("@namespace")) {
+      if (CSSParser.parseNamespaceRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.url = newRule.url;
+        this.prefix = newRule.prefix;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspSTYLE_DECLARATION */
 
 function jscsspDeclaration()
 {
@@ -1320,28 +1437,199 @@ function jscsspDeclaration()
   this.property = null;
   this.value = null;
   this.priority = null;
-  this.cssText = null;
+  this.parsedCssText = null;
 }
+
+jscsspDeclaration.prototype = {
+  get cssText() {
+    return this.property + ": "
+                    + this.value
+                    + (this.priority ? this.priority : "")
+                    + ";";
+  },
+
+  set cssText(val) {
+    var declarations = [];
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (CSSParser.parseDeclaration(token, declarations, true)
+        && declarations.length
+        && declarations[0].type == kJscsspSTYLE_DECLARATION) {
+      var newDecl = declarations.cssRules[0];
+      this.property = newDecl.property;
+      this.value = newDecl.value;
+      this.priority = newDecl.priority;
+      this.parsedCssText = newRule.parsedCssText;
+      return;
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspFONT_FACE_RULE */
 
 function jscsspFontFaceRule()
 {
   this.type = kJscsspFONT_FACE_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
   this.descriptors = [];
 }
+
+jscsspFontFaceRule.prototype = {
+  get cssText() {
+    var rv = gTABS + "@font-face {\n";
+    var preservedGTABS = gTABS;
+    gTABS += "  ";
+    for (var i = 0; i < this.descriptors.length; i++)
+      rv += gTABS + this.descriptors[i].cssText + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (token.isAtRule("@font-face")) {
+      if (CSSParser.parseFontFaceRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.descriptors = newRule.descriptors;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspMEDIA_RULE */
 
 function jscsspMediaRule()
 {
   this.type = kJscsspMEDIA_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
   this.cssRules = [];
   this.media = [];
 }
 
+jscsspMediaRule.prototype = {
+  get cssText() {
+    var rv = gTABS + "@media " + this.media.join(", ") + " {\n";
+    var preservedGTABS = gTABS;
+    gTABS += "  ";
+    for (var i = 0; i < this.cssRules.length; i++)
+      rv += this.cssRules[i].cssText + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (token.isAtRule("@media")) {
+      if (CSSParser.parseMediaRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.cssRules = newRule.cssRules;
+        this.media = newRule.media;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspSTYLE_RULE */
+
 function jscsspStyleRule()
 {
   this.type = kJscsspSTYLE_RULE;
-  this.cssText = null;
+  this.parsedCssText = null;
   this.declarations = []
-  this.selectorText = null;;
+  this.mSelectorText = null;;
 }
+
+jscsspStyleRule.prototype = {
+  get cssText() {
+    var rv = gTABS + this.mSelectorText + " {\n";
+    var preservedGTABS = gTABS;
+    gTABS += "  ";
+    for (var i = 0; i < this.declarations.length; i++)
+      rv += gTABS + this.declarations[i].cssText + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (!token.isNotNull()) {
+      if (CSSParser.parseStyleRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.mSelectorText = newRule.mSelectorText;
+        this.declarations = newRule.declarations;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  },
+
+  get selectorText() {
+    return this.mSelectorText;
+  },
+
+  set selectorText(val) {
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (!token.isNotNull()) {
+      var s = CSSParser.parseSelector(token, true);
+      if (s) {
+        this.mSelectorText = s;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+/* kJscsspPAGE_RULE */
+
+function jscsspPageRule()
+{
+  this.type = kJscsspPAGE_RULE;
+  this.parsedCssText = null;
+  this.pageSelector = null;
+  this.declarations = [];
+}
+
+jscsspPageRule.prototype = {
+  get cssText() {
+    var rv = gTABS + "@page " + (this.mediaSelector ? this.mediaSelector : "")
+                   + " {\n";
+    var preservedGTABS = gTABS;
+    gTABS += "  ";
+    for (var i = 0; i < this.declarations.length; i++)
+      rv += gTABS + this.declarations[i].cssText + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    CSSParser.init(val);
+    var token = CSSParser.getToken(true, true);
+    if (token.isAtRule("@page")) {
+      if (CSSParser.parsePageRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.pageSelector = newRule.pageSelector;
+        this.declarations = newRule.declarations;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
