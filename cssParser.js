@@ -367,6 +367,24 @@ function CSSParser(aString)
 }
 
 CSSParser.prototype = {
+  kBORDER_WIDTH_NAMES: {
+      "thin": true,
+      "medium": true,
+      "thick": true
+  },
+
+  kBORDER_STYLE_NAMES: {
+    "none": true,
+    "hidden": true,
+    "dotted": true,
+    "dashed": true,
+    "solid": true,
+    "double": true,
+    "groove": true,
+    "ridge": true,
+    "inset": true,
+    "outset": true
+  },
 
   kCOLOR_NAMES: {
     "transparent": true,
@@ -926,7 +944,7 @@ CSSParser.prototype = {
     return "";
   },
 
-  parseMarginOrPadding: function(token, aDecl, aAcceptPriority, aProperty)
+  parseMarginOrPaddingShorthand: function(token, aDecl, aAcceptPriority, aProperty)
   {
     var top = null;
     var bottom = null;
@@ -995,10 +1013,209 @@ CSSParser.prototype = {
    return top + " " + right + " " + bottom + " " + left;
   },
 
+  parseBorderColorShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    var top = null;
+    var bottom = null;
+    var left = null;
+    var right = null;
+
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else {
+        var color = this.parseColor(token);
+        if (color)
+          values.push(color);
+        else
+          return "";
+      }
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        top = values[0];
+        bottom = top;
+        left = top;
+        right = top;
+        break;
+      case 2:
+        top = values[0];
+        bottom = top;
+        left = values[1];
+        right = left;
+        break;
+      case 3:
+        top = values[0];
+        left = values[1];
+        right = left;
+        bottom = value[2];
+        break;
+      case 4:
+        top = values[0];
+        right = values[1];
+        bottom = value[2];
+        left = value[3];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("border-top-color", top));
+    aDecl.push(this._createJscsspDeclaration("border-right-color", right));
+    aDecl.push(this._createJscsspDeclaration("border-bottom-color", bottom));
+    aDecl.push(this._createJscsspDeclaration("border-left-color", left));
+    return top + " " + right + " " + bottom + " " + left;
+  },
+
+  parseBorderWidthShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    var top = null;
+    var bottom = null;
+    var left = null;
+    var right = null;
+
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (token.isDimension()
+               || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES)) {
+        values.push(token.value);
+      }
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        top = values[0];
+        bottom = top;
+        left = top;
+        right = top;
+        break;
+      case 2:
+        top = values[0];
+        bottom = top;
+        left = values[1];
+        right = left;
+        break;
+      case 3:
+        top = values[0];
+        left = values[1];
+        right = left;
+        bottom = value[2];
+        break;
+      case 4:
+        top = values[0];
+        right = values[1];
+        bottom = value[2];
+        left = value[3];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("border-top-width", top));
+    aDecl.push(this._createJscsspDeclaration("border-right-width", right));
+    aDecl.push(this._createJscsspDeclaration("border-bottom-width", bottom));
+    aDecl.push(this._createJscsspDeclaration("border-left-width", left));
+    return top + " " + right + " " + bottom + " " + left;
+  },
+
+  parseBorderEdgeShorthand: function(token, aDecl, aAcceptPriority, aProperty)
+  {
+    var bWidth = null;
+    var bStyle = null;
+    var bColor = null;
+
+    while (true) {
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (!bWidth &&
+               (token.isDimension()
+                || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES))) {
+        bWidth = token.value;
+      }
+
+      else if (!bStyle &&
+               (token.isIdent() && token.value in this.kBORDER_STYLE_NAMES)) {
+        bStyle = token.value;
+      }
+
+      else {
+        var color = this.parseColor(token);
+        if (!bColor && color)
+          bColor = color;
+        else
+          return "";
+      }
+      token = this.getToken(true, true);
+    }
+
+    // create the declarations
+    this.mScanner.forgetState();
+    bWidth = bWidth ? bWidth : "medium";
+    bStyle = bStyle ? bStyle : "none";
+    bColor = bColor ? bColor : "-moz-initial";
+
+    function addPropertyToDecl(aSelf, aDecl, property, w, s, c) {
+      aDecl.push(aSelf._createJscsspDeclaration(property + "-width", w));
+      aDecl.push(aSelf._createJscsspDeclaration(property + "-style", s));
+      aDecl.push(aSelf._createJscsspDeclaration(property + "-color", c));
+    }
+
+    if (aProperty == "border") {
+      addPropertyToDecl(this, aDecl, "border-top", bWidth, bStyle, bColor);
+      addPropertyToDecl(this, aDecl, "border-right", bWidth, bStyle, bColor);
+      addPropertyToDecl(this, aDecl, "border-bottom", bWidth, bStyle, bColor);
+      addPropertyToDecl(this, aDecl, "border-left", bWidth, bStyle, bColor);
+    }
+    else
+      addPropertyToDecl(this, aDecl, aProperty, bWidth, bStyle, bColor);
+    return bWidth + " " + bStyle + " " + bColor;
+  },
+
   parseBackgroundShorthand: function(token, aDecl, aAcceptPriority)
   {
-    const kHPos = {"left": true, "right": true};
-    const kVPos = {"top": true, "bottom": true};
+    const kHPos = {"left": true, "right": true };
+    const kVPos = {"top": true, "bottom": true };
     const kPos = {"left": true, "right": true, "top": true, "bottom": true, "center": true};
 
     var bgColor = null;
@@ -1097,6 +1314,60 @@ CSSParser.prototype = {
     aDecl.push(this._createJscsspDeclaration("background-attachment", bgAttachment));
     aDecl.push(this._createJscsspDeclaration("background-position", bgPosition));
     return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
+  },
+
+  parseCueShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    var before = null;
+    var after = null;
+
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (token.isIdent("none")) {
+        values.push(token.value);
+      }
+      else if (token.isFunction("url(")) {
+        var url = this.parseURL(token)
+        if (url)
+          values.push("url(" + url);
+        else
+          return "";
+      }
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        after = values[0];
+        before = after;
+        break;
+      case 2:
+        before = values[0];
+        after = before;
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("cue-before", before));
+    aDecl.push(this._createJscsspDeclaration("cue-after", after));
+   return before + " " + after;
   },
 
   _createJscsspDeclaration: function(property, value)
@@ -1261,7 +1532,23 @@ CSSParser.prototype = {
             break;
           case "margin":
           case "padding":
-            value = this.parseMarginOrPadding(token, declarations, aAcceptPriority, descriptor);
+            value = this.parseMarginOrPaddingShorthand(token, declarations, aAcceptPriority, descriptor);
+            break;
+          case "border-color":
+            value = this.parseBorderColorShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "border-style":
+            value = this.parseBorderStyleShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "border-width":
+            value = this.parseBorderWidthShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "border-top":
+          case "border-right":
+          case "border-bottom":
+          case "border-left":
+          case "border":
+            value = this.parseBorderEdgeShorthand(token, declarations, aAcceptPriority, descriptor);
             break;
           default:
             value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor);
@@ -1706,7 +1993,7 @@ CSSParser.prototype = {
     }
 
     return sheet;
-  },
+  }
 
 };
 
