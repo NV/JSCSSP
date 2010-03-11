@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta content="text/html; charset=ISO-8859-1" http-equiv="content-type" />
+  <title>Demo JSCSSP</title>
+
+  <script type="application/x-javascript"  src="cssParser.js"></script>
+  <script type="application/x-javascript">
+    function onLoad() {
+      var ss = "pre { background-color: #FFFFCC;  border: 2px silver solid; padding: 1em; }";
+      var source = document.getElementById("source");
+      source.textContent = ss;
+      var style = document.createElement("style");
+      style.setAttribute("type", "text/css");
+      style.textContent = ss;
+      document.getElementsByTagName("head").item(0).appendChild(style);
+
+      var parser = new CSSParser();
+      var sheet = parser.parse(ss, false, true);
+      var serialization = document.getElementById("serialization");
+      serialization.textContent = sheet.cssText;
+  }
+  </script>
+</head>
+<body onload="onLoad()">
+  <p>This document has the following stylesheet attached:</p>
+  <pre id="source"></pre>
+  <p>And this is the serialization through JSCSSP:</p>
+  <pre id="serialization"></pre>
+</body>
+</html>
