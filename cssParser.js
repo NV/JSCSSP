@@ -1686,12 +1686,24 @@ CSSParser.prototype = {
     return false;
   },
 
+	trim11: function(str) {
+	  str = str.replace(/^\s+/, '');
+	  for (var i = str.length - 1; i >= 0; i--) {
+	    if (/\S/.test(str.charAt(i))) {
+	      str = str.substring(0, i + 1);
+	      break;
+	    }
+	  }
+	  return str;
+	},
+
   parseStyleRule: function(aToken, aCssRules) {
     // first let's see if we have a selector here...
     var selector = this.parseSelector(aToken, false);
     var valid = false;
     var declarations = [];
     if (selector) {
+      selector = this.trim11(selector);
       var s = selector;
       var token = this.getToken(true, true);
       if (token.isSymbol("{")) {
