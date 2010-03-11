@@ -361,210 +361,210 @@ CSSScanner.prototype = {
 
 function CSSParser(aString)
 {
-	this.mToken = null;
-	this.mLookAhead = null;
-	this.mScanner = new CSSScanner(aString);
+  this.mToken = null;
+  this.mLookAhead = null;
+  this.mScanner = new CSSScanner(aString);
 }
 
 CSSParser.prototype = {
 
-	kCOLOR_NAMES: {
-	  "transparent": true,
-	
-	  "black": true,
-	  "silver": true,
-	  "gray": true,
-	  "white": true,
-	  "maroon": true,
-	  "red": true,
-	  "purple": true,
-	  "fuchsia": true,
-	  "green": true,
-	  "lime": true,
-	  "olive": true,
-	  "yellow": true,
-	  "navy": true,
-	  "blue": true,
-	  "teal": true,
-	  "aqua": true,
-	  
-	  "aliceblue": true,
-	  "antiquewhite": true,
-	  "aqua": true,
-	  "aquamarine": true,
-	  "azure": true,
-	  "beige": true,
-	  "bisque": true,
-	  "black": true,
-	  "blanchedalmond": true,
-	  "blue": true,
-	  "blueviolet": true,
-	  "brown": true,
-	  "burlywood": true,
-	  "cadetblue": true,
-	  "chartreuse": true,
-	  "chocolate": true,
-	  "coral": true,
-	  "cornflowerblue": true,
-	  "cornsilk": true,
-	  "crimson": true,
-	  "cyan": true,
-	  "darkblue": true,
-	  "darkcyan": true,
-	  "darkgoldenrod": true,
-	  "darkgray": true,
-	  "darkgreen": true,
-	  "darkgrey": true,
-	  "darkkhaki": true,
-	  "darkmagenta": true,
-	  "darkolivegreen": true,
-	  "darkorange": true,
-	  "darkorchid": true,
-	  "darkred": true,
-	  "darksalmon": true,
-	  "darkseagreen": true,
-	  "darkslateblue": true,
-	  "darkslategray": true,
-	  "darkslategrey": true,
-	  "darkturquoise": true,
-	  "darkviolet": true,
-	  "deeppink": true,
-	  "deepskyblue": true,
-	  "dimgray": true,
-	  "dimgrey": true,
-	  "dodgerblue": true,
-	  "firebrick": true,
-	  "floralwhite": true,
-	  "forestgreen": true,
-	  "fuchsia": true,
-	  "gainsboro": true,
-	  "ghostwhite": true,
-	  "gold": true,
-	  "goldenrod": true,
-	  "gray": true,
-	  "green": true,
-	  "greenyellow": true,
-	  "grey": true,
-	  "honeydew": true,
-	  "hotpink": true,
-	  "indianred": true,
-	  "indigo": true,
-	  "ivory": true,
-	  "khaki": true,
-	  "lavender": true,
-	  "lavenderblush": true,
-	  "lawngreen": true,
-	  "lemonchiffon": true,
-	  "lightblue": true,
-	  "lightcoral": true,
-	  "lightcyan": true,
-	  "lightgoldenrodyellow": true,
-	  "lightgray": true,
-	  "lightgreen": true,
-	  "lightgrey": true,
-	  "lightpink": true,
-	  "lightsalmon": true,
-	  "lightseagreen": true,
-	  "lightskyblue": true,
-	  "lightslategray": true,
-	  "lightslategrey": true,
-	  "lightsteelblue": true,
-	  "lightyellow": true,
-	  "lime": true,
-	  "limegreen": true,
-	  "linen": true,
-	  "magenta": true,
-	  "maroon": true,
-	  "mediumaquamarine": true,
-	  "mediumblue": true,
-	  "mediumorchid": true,
-	  "mediumpurple": true,
-	  "mediumseagreen": true,
-	  "mediumslateblue": true,
-	  "mediumspringgreen": true,
-	  "mediumturquoise": true,
-	  "mediumvioletred": true,
-	  "midnightblue": true,
-	  "mintcream": true,
-	  "mistyrose": true,
-	  "moccasin": true,
-	  "navajowhite": true,
-	  "navy": true,
-	  "oldlace": true,
-	  "olive": true,
-	  "olivedrab": true,
-	  "orange": true,
-	  "orangered": true,
-	  "orchid": true,
-	  "palegoldenrod": true,
-	  "palegreen": true,
-	  "paleturquoise": true,
-	  "palevioletred": true,
-	  "papayawhip": true,
-	  "peachpuff": true,
-	  "peru": true,
-	  "pink": true,
-	  "plum": true,
-	  "powderblue": true,
-	  "purple": true,
-	  "red": true,
-	  "rosybrown": true,
-	  "royalblue": true,
-	  "saddlebrown": true,
-	  "salmon": true,
-	  "sandybrown": true,
-	  "seagreen": true,
-	  "seashell": true,
-	  "sienna": true,
-	  "silver": true,
-	  "skyblue": true,
-	  "slateblue": true,
-	  "slategray": true,
-	  "slategrey": true,
-	  "snow": true,
-	  "springgreen": true,
-	  "steelblue": true,
-	  "tan": true,
-	  "teal": true,
-	  "thistle": true,
-	  "tomato": true,
-	  "turquoise": true,
-	  "violet": true,
-	  "wheat": true,
-	  "white": true,
-	  "whitesmoke": true,
-	  "yellow": true,
-	  "yellowgreen": true,
-	
-	  "activeborder": true,
-	  "activecaption": true,
-	  "appworkspace": true,
-	  "background": true,
-	  "buttonface": true,
-	  "buttonhighlight": true,
-	  "buttonshadow": true,
-	  "buttontext": true,
-	  "captiontext": true,
-	  "graytext": true,
-	  "highlight": true,
-	  "highlighttext": true,
-	  "inactiveborder": true,
-	  "inactivecaption": true,
-	  "inactivecaptiontext": true,
-	  "infobackground": true,
-	  "infotext": true,
-	  "menu": true,
-	  "menutext": true,
-	  "scrollbar": true,
-	  "threeddarkshadow": true,
-	  "threedface": true,
-	  "threedhighlight": true,
-	  "threedlightshadow": true,
-	  "threedshadow": true,
-	  "window": true,
-	  "windowframe": true,
-	  "windowtext": true
-	},
+  kCOLOR_NAMES: {
+    "transparent": true,
+  
+    "black": true,
+    "silver": true,
+    "gray": true,
+    "white": true,
+    "maroon": true,
+    "red": true,
+    "purple": true,
+    "fuchsia": true,
+    "green": true,
+    "lime": true,
+    "olive": true,
+    "yellow": true,
+    "navy": true,
+    "blue": true,
+    "teal": true,
+    "aqua": true,
+    
+    "aliceblue": true,
+    "antiquewhite": true,
+    "aqua": true,
+    "aquamarine": true,
+    "azure": true,
+    "beige": true,
+    "bisque": true,
+    "black": true,
+    "blanchedalmond": true,
+    "blue": true,
+    "blueviolet": true,
+    "brown": true,
+    "burlywood": true,
+    "cadetblue": true,
+    "chartreuse": true,
+    "chocolate": true,
+    "coral": true,
+    "cornflowerblue": true,
+    "cornsilk": true,
+    "crimson": true,
+    "cyan": true,
+    "darkblue": true,
+    "darkcyan": true,
+    "darkgoldenrod": true,
+    "darkgray": true,
+    "darkgreen": true,
+    "darkgrey": true,
+    "darkkhaki": true,
+    "darkmagenta": true,
+    "darkolivegreen": true,
+    "darkorange": true,
+    "darkorchid": true,
+    "darkred": true,
+    "darksalmon": true,
+    "darkseagreen": true,
+    "darkslateblue": true,
+    "darkslategray": true,
+    "darkslategrey": true,
+    "darkturquoise": true,
+    "darkviolet": true,
+    "deeppink": true,
+    "deepskyblue": true,
+    "dimgray": true,
+    "dimgrey": true,
+    "dodgerblue": true,
+    "firebrick": true,
+    "floralwhite": true,
+    "forestgreen": true,
+    "fuchsia": true,
+    "gainsboro": true,
+    "ghostwhite": true,
+    "gold": true,
+    "goldenrod": true,
+    "gray": true,
+    "green": true,
+    "greenyellow": true,
+    "grey": true,
+    "honeydew": true,
+    "hotpink": true,
+    "indianred": true,
+    "indigo": true,
+    "ivory": true,
+    "khaki": true,
+    "lavender": true,
+    "lavenderblush": true,
+    "lawngreen": true,
+    "lemonchiffon": true,
+    "lightblue": true,
+    "lightcoral": true,
+    "lightcyan": true,
+    "lightgoldenrodyellow": true,
+    "lightgray": true,
+    "lightgreen": true,
+    "lightgrey": true,
+    "lightpink": true,
+    "lightsalmon": true,
+    "lightseagreen": true,
+    "lightskyblue": true,
+    "lightslategray": true,
+    "lightslategrey": true,
+    "lightsteelblue": true,
+    "lightyellow": true,
+    "lime": true,
+    "limegreen": true,
+    "linen": true,
+    "magenta": true,
+    "maroon": true,
+    "mediumaquamarine": true,
+    "mediumblue": true,
+    "mediumorchid": true,
+    "mediumpurple": true,
+    "mediumseagreen": true,
+    "mediumslateblue": true,
+    "mediumspringgreen": true,
+    "mediumturquoise": true,
+    "mediumvioletred": true,
+    "midnightblue": true,
+    "mintcream": true,
+    "mistyrose": true,
+    "moccasin": true,
+    "navajowhite": true,
+    "navy": true,
+    "oldlace": true,
+    "olive": true,
+    "olivedrab": true,
+    "orange": true,
+    "orangered": true,
+    "orchid": true,
+    "palegoldenrod": true,
+    "palegreen": true,
+    "paleturquoise": true,
+    "palevioletred": true,
+    "papayawhip": true,
+    "peachpuff": true,
+    "peru": true,
+    "pink": true,
+    "plum": true,
+    "powderblue": true,
+    "purple": true,
+    "red": true,
+    "rosybrown": true,
+    "royalblue": true,
+    "saddlebrown": true,
+    "salmon": true,
+    "sandybrown": true,
+    "seagreen": true,
+    "seashell": true,
+    "sienna": true,
+    "silver": true,
+    "skyblue": true,
+    "slateblue": true,
+    "slategray": true,
+    "slategrey": true,
+    "snow": true,
+    "springgreen": true,
+    "steelblue": true,
+    "tan": true,
+    "teal": true,
+    "thistle": true,
+    "tomato": true,
+    "turquoise": true,
+    "violet": true,
+    "wheat": true,
+    "white": true,
+    "whitesmoke": true,
+    "yellow": true,
+    "yellowgreen": true,
+  
+    "activeborder": true,
+    "activecaption": true,
+    "appworkspace": true,
+    "background": true,
+    "buttonface": true,
+    "buttonhighlight": true,
+    "buttonshadow": true,
+    "buttontext": true,
+    "captiontext": true,
+    "graytext": true,
+    "highlight": true,
+    "highlighttext": true,
+    "inactiveborder": true,
+    "inactivecaption": true,
+    "inactivecaptiontext": true,
+    "infobackground": true,
+    "infotext": true,
+    "menu": true,
+    "menutext": true,
+    "scrollbar": true,
+    "threeddarkshadow": true,
+    "threedface": true,
+    "threedhighlight": true,
+    "threedlightshadow": true,
+    "threedshadow": true,
+    "window": true,
+    "windowframe": true,
+    "windowtext": true
+  },
 
   get currentToken() {
     return this.mToken;
@@ -881,50 +881,50 @@ CSSParser.prototype = {
   },
 
   parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor) {
-	  var value = "";
+    var value = "";
     var blocks = [];
-	  var foundPriority = false;
-	  while (token.isNotNull()) {
-	    if ((token.isSymbol(";")
+    var foundPriority = false;
+    while (token.isNotNull()) {
+      if ((token.isSymbol(";")
            || token.isSymbol("}")
            || token.isSymbol("!"))
-	        && !blocks.length) {
-	      if (token.isSymbol("}"))
-	        this.ungetToken();
-	      break;
-	    }
-	
-	    if (token.isSymbol("!")) {
-	      break;
-	    }
+          && !blocks.length) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+  
+      if (token.isSymbol("!")) {
+        break;
+      }
       else if (token.isSymbol("{")
-	               || token.isSymbol("(")
-	               || token.isSymbol("[")
-	               || token.isFunction()) {
-	      blocks.push(token.isFunction() ? "(" : token.value);
-	    }
+                 || token.isSymbol("(")
+                 || token.isSymbol("[")
+                 || token.isFunction()) {
+        blocks.push(token.isFunction() ? "(" : token.value);
+      }
       else if (token.isSymbol("}")
-	               || token.isSymbol(")")
-	               || token.isSymbol("]")) {
-	      if (blocks.length) {
-	        var ontop = blocks[blocks.length - 1];
-	        if ((token.isSymbol("}") && ontop == "{")
-	            || (token.isSymbol(")") && ontop == "(")
-	            || (token.isSymbol("]") && ontop == "[")) {
-	          blocks.pop();
-	        }
-	      }
-	    }
+                 || token.isSymbol(")")
+                 || token.isSymbol("]")) {
+        if (blocks.length) {
+          var ontop = blocks[blocks.length - 1];
+          if ((token.isSymbol("}") && ontop == "{")
+              || (token.isSymbol(")") && ontop == "(")
+              || (token.isSymbol("]") && ontop == "[")) {
+            blocks.pop();
+          }
+        }
+      }
       value += token.value;
-	    token = this.getToken(false, true);
-	  }
-	  if (value) {
-	    this.mScanner.forgetState();
+      token = this.getToken(false, true);
+    }
+    if (value) {
+      this.mScanner.forgetState();
       aDecl.push(this._createJscsspDeclaration(descriptor, value));
-	    return value;
-	  }
+      return value;
+    }
     return "";
-	},
+  },
 
   parseMarginOrPadding: function(token, aDecl, aAcceptPriority, aProperty)
   {
@@ -1049,8 +1049,8 @@ CSSParser.prototype = {
         }
 
         else if (!bgRepeat &&
-		             (token.isIdent("repeat")
-		              || token.isIdent("repeat-x")
+                 (token.isIdent("repeat")
+                  || token.isIdent("repeat-x")
                   || token.isIdent("repeat-y")
                   || token.isIdent("no-repeat"))) {
           bgRepeat = token.value;
@@ -1074,8 +1074,8 @@ CSSParser.prototype = {
           var color = this.parseColor(token);
           if (!bgColor && color)
             bgColor = color;
-	        else
-	          return "";
+          else
+            return "";
         }
 
       }
@@ -1117,16 +1117,16 @@ CSSParser.prototype = {
       token = this.getToken(true, true);
     }
     else
-	    while (true)
-	    {
-	      if (!token.isNotNull())
-	        return "";
-	      if (token.isSymbol(")")) {
+      while (true)
+      {
+        if (!token.isNotNull())
+          return "";
+        if (token.isSymbol(")")) {
           break;
         }
         value += token.value;
         token = this.getToken(false, false);
-	    }
+      }
 
     if (token.isSymbol(")"))
       return value + ")";
@@ -1138,93 +1138,93 @@ CSSParser.prototype = {
     var color = "";
     if (token.isFunction("rgb(")
         || token.isFunction("rgba(")) {
-	    color = token.value;
-	    var isRgba = token.isFunction("rgba(")
-	    token = this.getToken(true, true);
-	    if (!token.isDimension() && !token.isPercentage())
-	      return "";
-	    color += token.value;
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(","))
-	      return "";
-	    color += ", ";
-	
-	    token = this.getToken(true, true);
-	    if (!token.isDimension() && !token.isPercentage())
-	      return "";
-	    color += token.value;
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(","))
-	      return "";
-	    color += ", ";
-	
-	    token = this.getToken(true, true);
-	    if (!token.isDimension() && !token.isPercentage())
-	      return "";
-	    color += token.value;
-	
-	    if (isRgba) {
-	      token = this.getToken(true, true);
-	      if (!token.isSymbol(","))
-	        return "";
-	      color += ", ";
-	
-	      token = this.getToken(true, true);
-	      if (!token.isDimension())
-	        return "";
-	      color += token.value;
-	    }
-	
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(")"))
-	      return "";
-	    color += token.value;
-	  }
-	
-	  else if (token.isFunction("hsl(")
+      color = token.value;
+      var isRgba = token.isFunction("rgba(")
+      token = this.getToken(true, true);
+      if (!token.isDimension() && !token.isPercentage())
+        return "";
+      color += token.value;
+      token = this.getToken(true, true);
+      if (!token.isSymbol(","))
+        return "";
+      color += ", ";
+  
+      token = this.getToken(true, true);
+      if (!token.isDimension() && !token.isPercentage())
+        return "";
+      color += token.value;
+      token = this.getToken(true, true);
+      if (!token.isSymbol(","))
+        return "";
+      color += ", ";
+  
+      token = this.getToken(true, true);
+      if (!token.isDimension() && !token.isPercentage())
+        return "";
+      color += token.value;
+  
+      if (isRgba) {
+        token = this.getToken(true, true);
+        if (!token.isSymbol(","))
+          return "";
+        color += ", ";
+  
+        token = this.getToken(true, true);
+        if (!token.isDimension())
+          return "";
+        color += token.value;
+      }
+  
+      token = this.getToken(true, true);
+      if (!token.isSymbol(")"))
+        return "";
+      color += token.value;
+    }
+  
+    else if (token.isFunction("hsl(")
              || token.isFunction("hsla(")) {
-	    color = token.value;
-	    var isHsla = token.isFunction("hsla(")
-	    token = this.getToken(true, true);
-	    if (!token.isDimension())
-	      return "";
-	    color += token.value;
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(","))
-	      return "";
-	    color += ", ";
-	
-	    token = this.getToken(true, true);
-	    if (!token.isPercentage())
-	      return "";
-	    color += token.value;
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(","))
-	      return "";
-	    color += ", ";
-	
-	    token = this.getToken(true, true);
-	    if (!token.isPercentage())
-	      return "";
-	    color += token.value;
-	
-	    if (isHsla) {
-	      token = this.getToken(true, true);
-	      if (!token.isSymbol(","))
-	        return "";
-	      color += ", ";
-	
-	      token = this.getToken(true, true);
-	      if (!token.isDimension())
-	        return "";
-	      color += token.value;
-	    }
-	
-	    token = this.getToken(true, true);
-	    if (!token.isSymbol(")"))
-	      return "";
-	    color += token.value;
-	  }
+      color = token.value;
+      var isHsla = token.isFunction("hsla(")
+      token = this.getToken(true, true);
+      if (!token.isDimension())
+        return "";
+      color += token.value;
+      token = this.getToken(true, true);
+      if (!token.isSymbol(","))
+        return "";
+      color += ", ";
+  
+      token = this.getToken(true, true);
+      if (!token.isPercentage())
+        return "";
+      color += token.value;
+      token = this.getToken(true, true);
+      if (!token.isSymbol(","))
+        return "";
+      color += ", ";
+  
+      token = this.getToken(true, true);
+      if (!token.isPercentage())
+        return "";
+      color += token.value;
+  
+      if (isHsla) {
+        token = this.getToken(true, true);
+        if (!token.isSymbol(","))
+          return "";
+        color += ", ";
+  
+        token = this.getToken(true, true);
+        if (!token.isDimension())
+          return "";
+        color += token.value;
+      }
+  
+      token = this.getToken(true, true);
+      if (!token.isSymbol(")"))
+        return "";
+      color += token.value;
+    }
 
     else if (token.isIdent()
              && (token.value in this.kCOLOR_NAMES))
@@ -1276,9 +1276,9 @@ CSSParser.prototype = {
             if (token.isIdent("important")) {
               priority = true;
               token = this.getToken(true, true);
-				      if (token.isSymbol(";") || token.isSymbol("}")) {
-				        if (token.isSymbol("}"))
-				          this.ungetToken();
+              if (token.isSymbol(";") || token.isSymbol("}")) {
+                if (token.isSymbol("}"))
+                  this.ungetToken();
               }
               else return "";
             }
