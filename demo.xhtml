@@ -6,10 +6,11 @@
   <script type="application/x-javascript"  src="cssParser.js"></script>
   <script type="application/x-javascript">
     function onLoad() {
-      var ss = "pre { background-color: #FFFFCC;\
-  border: 2px silver solid; \
-  padding: 1em; -moz-border-radius: 11px;}\
- body { font-family: sans-serif; margin: 1em }";
+      var ss = "pre { background-color: #FFFFCC; border: 2px silver solid; padding: 1em; -moz-border-radius: 11px;}\n\
+body { font-family: sans-serif; margin: 1em }\n\
+h1 { background-color: silver }\n\
+h2 { background-color: lightgrey }\n\
+h1, h2 { margin: 0px; padding: 4px }";
       var source = document.getElementById("source");
       source.textContent = ss;
       var style = document.createElement("style");
@@ -25,6 +26,8 @@
   </script>
 </head>
 <body onload="onLoad()">
+  <h1>JSCCSP, a CSS parser in JavaScript</h1>
+  <h2>Author: <a href="http://glazman.org/weblog">Daniel Glazman</a></h2>
   <p>This document has the following stylesheet attached:</p>
   <pre id="source"/>
   <p>And this is the serialization through <a href="http://sources.disruptive-innovations.com/jscssp/">JSCSSP</a>:</p>
