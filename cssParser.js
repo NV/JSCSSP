@@ -58,7 +58,12 @@ const SI  = IS_IDENT|START_IDENT;
 const XI  = IS_IDENT            |IS_HEX_DIGIT;
 const XSI = IS_IDENT|START_IDENT|IS_HEX_DIGIT;
 
-var CSSScanner = {
+function CSSScanner(aString)
+{
+  this.init(aString);
+}
+
+CSSScanner.prototype = {
 
   kLexTable: [
   //                                     TAB LF      FF  CR
@@ -102,6 +107,7 @@ var CSSScanner = {
   init: function(aString) {
     this.mString = aString;
     this.mPos = 0;
+    this.mPreservedPos = [];
   },
 
   getCurrentPos: function() {
@@ -159,6 +165,21 @@ var CSSScanner = {
 
   pushback: function() {
     this.mPos--;
+  },
+
+  nextHexValue: function() {
+    var c = this.read();
+    if (c == -1 || !this.isHexDigit(c))
+      return new jscsspToken(jscsspToken.NULL_TYPE, null);
+    var s = c;
+    c = this.read();
+    while (c != -1 && this.isHexDigit(c)) {
+      s += c;
+      c = this.read();
+    }
+    if (c != -1)
+      this.pushback();
+    return new jscsspToken(jscsspToken.HEX_TYPE, s);
   },
 
   gatherIdent: function(c) {
@@ -221,7 +242,16 @@ var CSSScanner = {
       else
         break;
     }
-    if (c != -1)
+    if (this.startsWithIdent(c, this.peek())) { // DIMENSION
+      var unit = this.gatherIdent(c);
+      s += unit;
+      return new jscsspToken(jscsspToken.DIMENSION_TYPE, s);
+    }
+    else if (c == "%") {
+      s += "%";
+      return new jscsspToken(jscsspToken.PERCENTAGE_TYPE, s);
+    }
+    else if (c != -1)
       this.pushback();
     return new jscsspToken(jscsspToken.NUMBER_TYPE, s);
   },
@@ -329,14 +359,220 @@ var CSSScanner = {
   }
 };
 
-var CSSParser = {
-  mToken : null,
-  mLookAhead : null,
+function CSSParser(aString)
+{
+	this.mToken = null;
+	this.mLookAhead = null;
+	this.mScanner = new CSSScanner(aString);
+}
 
-  init: function(aString) {
-    this.mToken = null;
-    this.mLookAhead = null;
-    CSSScanner.init(aString);
+CSSParser.prototype = {
+
+	kCOLOR_NAMES: {
+	  "transparent": true,
+	
+	  "black": true,
+	  "silver": true,
+	  "gray": true,
+	  "white": true,
+	  "maroon": true,
+	  "red": true,
+	  "purple": true,
+	  "fuchsia": true,
+	  "green": true,
+	  "lime": true,
+	  "olive": true,
+	  "yellow": true,
+	  "navy": true,
+	  "blue": true,
+	  "teal": true,
+	  "aqua": true,
+	  
+	  "aliceblue": true,
+	  "antiquewhite": true,
+	  "aqua": true,
+	  "aquamarine": true,
+	  "azure": true,
+	  "beige": true,
+	  "bisque": true,
+	  "black": true,
+	  "blanchedalmond": true,
+	  "blue": true,
+	  "blueviolet": true,
+	  "brown": true,
+	  "burlywood": true,
+	  "cadetblue": true,
+	  "chartreuse": true,
+	  "chocolate": true,
+	  "coral": true,
+	  "cornflowerblue": true,
+	  "cornsilk": true,
+	  "crimson": true,
+	  "cyan": true,
+	  "darkblue": true,
+	  "darkcyan": true,
+	  "darkgoldenrod": true,
+	  "darkgray": true,
+	  "darkgreen": true,
+	  "darkgrey": true,
+	  "darkkhaki": true,
+	  "darkmagenta": true,
+	  "darkolivegreen": true,
+	  "darkorange": true,
+	  "darkorchid": true,
+	  "darkred": true,
+	  "darksalmon": true,
+	  "darkseagreen": true,
+	  "darkslateblue": true,
+	  "darkslategray": true,
+	  "darkslategrey": true,
+	  "darkturquoise": true,
+	  "darkviolet": true,
+	  "deeppink": true,
+	  "deepskyblue": true,
+	  "dimgray": true,
+	  "dimgrey": true,
+	  "dodgerblue": true,
+	  "firebrick": true,
+	  "floralwhite": true,
+	  "forestgreen": true,
+	  "fuchsia": true,
+	  "gainsboro": true,
+	  "ghostwhite": true,
+	  "gold": true,
+	  "goldenrod": true,
+	  "gray": true,
+	  "green": true,
+	  "greenyellow": true,
+	  "grey": true,
+	  "honeydew": true,
+	  "hotpink": true,
+	  "indianred": true,
+	  "indigo": true,
+	  "ivory": true,
+	  "khaki": true,
+	  "lavender": true,
+	  "lavenderblush": true,
+	  "lawngreen": true,
+	  "lemonchiffon": true,
+	  "lightblue": true,
+	  "lightcoral": true,
+	  "lightcyan": true,
+	  "lightgoldenrodyellow": true,
+	  "lightgray": true,
+	  "lightgreen": true,
+	  "lightgrey": true,
+	  "lightpink": true,
+	  "lightsalmon": true,
+	  "lightseagreen": true,
+	  "lightskyblue": true,
+	  "lightslategray": true,
+	  "lightslategrey": true,
+	  "lightsteelblue": true,
+	  "lightyellow": true,
+	  "lime": true,
+	  "limegreen": true,
+	  "linen": true,
+	  "magenta": true,
+	  "maroon": true,
+	  "mediumaquamarine": true,
+	  "mediumblue": true,
+	  "mediumorchid": true,
+	  "mediumpurple": true,
+	  "mediumseagreen": true,
+	  "mediumslateblue": true,
+	  "mediumspringgreen": true,
+	  "mediumturquoise": true,
+	  "mediumvioletred": true,
+	  "midnightblue": true,
+	  "mintcream": true,
+	  "mistyrose": true,
+	  "moccasin": true,
+	  "navajowhite": true,
+	  "navy": true,
+	  "oldlace": true,
+	  "olive": true,
+	  "olivedrab": true,
+	  "orange": true,
+	  "orangered": true,
+	  "orchid": true,
+	  "palegoldenrod": true,
+	  "palegreen": true,
+	  "paleturquoise": true,
+	  "palevioletred": true,
+	  "papayawhip": true,
+	  "peachpuff": true,
+	  "peru": true,
+	  "pink": true,
+	  "plum": true,
+	  "powderblue": true,
+	  "purple": true,
+	  "red": true,
+	  "rosybrown": true,
+	  "royalblue": true,
+	  "saddlebrown": true,
+	  "salmon": true,
+	  "sandybrown": true,
+	  "seagreen": true,
+	  "seashell": true,
+	  "sienna": true,
+	  "silver": true,
+	  "skyblue": true,
+	  "slateblue": true,
+	  "slategray": true,
+	  "slategrey": true,
+	  "snow": true,
+	  "springgreen": true,
+	  "steelblue": true,
+	  "tan": true,
+	  "teal": true,
+	  "thistle": true,
+	  "tomato": true,
+	  "turquoise": true,
+	  "violet": true,
+	  "wheat": true,
+	  "white": true,
+	  "whitesmoke": true,
+	  "yellow": true,
+	  "yellowgreen": true,
+	
+	  "activeborder": true,
+	  "activecaption": true,
+	  "appworkspace": true,
+	  "background": true,
+	  "buttonface": true,
+	  "buttonhighlight": true,
+	  "buttonshadow": true,
+	  "buttontext": true,
+	  "captiontext": true,
+	  "graytext": true,
+	  "highlight": true,
+	  "highlighttext": true,
+	  "inactiveborder": true,
+	  "inactivecaption": true,
+	  "inactivecaptiontext": true,
+	  "infobackground": true,
+	  "infotext": true,
+	  "menu": true,
+	  "menutext": true,
+	  "scrollbar": true,
+	  "threeddarkshadow": true,
+	  "threedface": true,
+	  "threedhighlight": true,
+	  "threedlightshadow": true,
+	  "threedshadow": true,
+	  "window": true,
+	  "windowframe": true,
+	  "windowtext": true
+	},
+
+  get currentToken() {
+    return this.mToken;
+  },
+
+  getHexValue: function() {
+    this.mToken = this.mScanner.nextHexValue();
+    return this.mToken;
   },
 
   getToken: function(aSkipWS, aSkipComment) {
@@ -346,19 +582,19 @@ var CSSParser = {
       return this.mToken;
     }
 
-    this.mToken = CSSScanner.nextToken();
+    this.mToken = this.mScanner.nextToken();
     while (this.mToken &&
            ((aSkipWS && this.mToken.isWhitespace()) ||
             (aSkipComment && this.mToken.isComment())))
-      this.mToken = CSSScanner.nextToken();
+      this.mToken = this.mScanner.nextToken();
     return this.mToken;
   },
 
   lookAhead: function(aSkipWS, aSkipComment) {
     var preservedToken = this.mToken;
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var token = this.getToken(aSkipWS, aSkipComment);
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     this.mToken = preservedToken;
 
     return token;
@@ -446,7 +682,7 @@ var CSSParser = {
 
   parseImportRule: function(aToken, aSheet) {
     var s = aToken.value;
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var valid = false;
     var token = this.getToken(true, true);
     if (token.isNotNull() && token.isString()) {
@@ -471,7 +707,7 @@ var CSSParser = {
       if (token.isSymbol(";")) {
         valid = true;
         s += ";"
-        CSSScanner.forgetState();
+        this.mScanner.forgetState();
         var rule = new jscsspImportRule();
         rule.parsedCssText = s;
         rule.href = href;
@@ -480,7 +716,7 @@ var CSSParser = {
         return true;
       }
     }
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     this.addUnknownAtRule(aSheet, "@import");
     return false;
   },
@@ -488,7 +724,7 @@ var CSSParser = {
   parseNamespaceRule: function(aToken, aSheet) {
     var s = aToken.value;
     var valid = false;
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var token = this.getToken(true, true);
     if (token.isNotNull()) {
       var prefix = "";
@@ -546,7 +782,7 @@ var CSSParser = {
         token = this.getToken(true, true);
         if (token.isSymbol(";")) {
           s += ";";
-          CSSScanner.forgetState();
+          this.mScanner.forgetState();
           var rule = new jscsspNamespaceRule();
           rule.parsedCssText = s;
           rule.prefix = prefix;
@@ -557,7 +793,7 @@ var CSSParser = {
       }
 
     }
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     this.addUnknownAtRule(aSheet, "@namespace");
     return false;
   },
@@ -566,7 +802,7 @@ var CSSParser = {
     var s = aToken.value;
     var valid = false;
     var descriptors = [];
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var token = this.getToken(true, true);
     if (token.isNotNull()) {
       // expecting block start
@@ -587,14 +823,14 @@ var CSSParser = {
       }
     }
     if (valid) {
-      CSSScanner.forgetState();
+      this.mScanner.forgetState();
       var rule = new jscsspFontFaceRule();
       rule.parsedCssText = s;
       rule.descriptors = descriptors;
       aSheet.cssRules.push(rule)
       return true;
     }
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     return false;
   },
 
@@ -602,7 +838,7 @@ var CSSParser = {
     var s = aToken.value;
     var valid = false;
     var declarations = [];
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var token = this.getToken(true, true);
     var pageSelector = "";
     if (token.isSymbol(":")) {
@@ -632,7 +868,7 @@ var CSSParser = {
       }
     }
     if (valid) {
-      CSSScanner.forgetState();
+      this.mScanner.forgetState();
       var rule = new jscsspPageRule();
       rule.parsedCssText = s;
       rule.pageSelector = pageSelector;
@@ -640,83 +876,426 @@ var CSSParser = {
       aSheet.cssRules.push(rule)
       return true;
     }
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     return false;
   },
 
+  parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor) {
+	  var value = "";
+    var blocks = [];
+	  var foundPriority = false;
+	  while (token.isNotNull()) {
+	    if ((token.isSymbol(";")
+           || token.isSymbol("}")
+           || token.isSymbol("!"))
+	        && !blocks.length) {
+	      if (token.isSymbol("}"))
+	        this.ungetToken();
+	      break;
+	    }
+	
+	    if (token.isSymbol("!")) {
+	      break;
+	    }
+      else if (token.isSymbol("{")
+	               || token.isSymbol("(")
+	               || token.isSymbol("[")
+	               || token.isFunction()) {
+	      blocks.push(token.isFunction() ? "(" : token.value);
+	    }
+      else if (token.isSymbol("}")
+	               || token.isSymbol(")")
+	               || token.isSymbol("]")) {
+	      if (blocks.length) {
+	        var ontop = blocks[blocks.length - 1];
+	        if ((token.isSymbol("}") && ontop == "{")
+	            || (token.isSymbol(")") && ontop == "(")
+	            || (token.isSymbol("]") && ontop == "[")) {
+	          blocks.pop();
+	        }
+	      }
+	    }
+      value += token.value;
+	    token = this.getToken(false, true);
+	  }
+	  if (value) {
+	    this.mScanner.forgetState();
+      aDecl.push(this._createJscsspDeclaration(descriptor, value));
+	    return value;
+	  }
+    return "";
+	},
+
+  parseMarginOrPadding: function(token, aDecl, aAcceptPriority, aProperty)
+  {
+    var top = null;
+    var bottom = null;
+    var left = null;
+    var right = null;
+
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (token.isDimension()
+              || token.isPercentage()
+              || token.isIdent("auto")) {
+        values.push(token.value);
+      }
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        top = values[0];
+        bottom = top;
+        left = top;
+        right = top;
+        break;
+      case 2:
+        top = values[0];
+        bottom = top;
+        left = values[1];
+        right = left;
+        break;
+      case 3:
+        top = values[0];
+        left = values[1];
+        right = left;
+        bottom = value[2];
+        break;
+      case 4:
+        top = values[0];
+        right = values[1];
+        bottom = value[2];
+        left = value[3];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration(aProperty + "-top", top));
+    aDecl.push(this._createJscsspDeclaration(aProperty + "-right", right));
+    aDecl.push(this._createJscsspDeclaration(aProperty + "-bottom", bottom));
+    aDecl.push(this._createJscsspDeclaration(aProperty + "-left", left));
+   return top + " " + right + " " + bottom + " " + left;
+  },
+
+  parseBackgroundShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    const kHPos = {"left": true, "right": true};
+    const kVPos = {"top": true, "bottom": true};
+    const kPos = {"left": true, "right": true, "top": true, "bottom": true, "center": true};
+
+    var bgColor = null;
+    var bgRepeat = null;
+    var bgAttachment = null;
+    var bgImage = null;
+    var bgPosition = null;
+
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else {
+        if (!bgAttachment &&
+            (token.isIdent("scroll")
+             || token.isIdent("fixed"))) {
+          bgAttachment = token.value;
+        }
+
+        else if (!bgPosition &&
+                 ((token.isIdent() && token.value in kPos)
+                  || token.isDimension()
+                  || token.isPercentage())) {
+          bgPosition = token.value;
+          token = this.getToken(true, true);
+          if (token.isDimension() || token.isPercentage()) {
+            bgPosition += " " + token.value;
+          }
+          else if (token.isIdent() && token.value in kPos) {
+            if ((bgPosition in kHPos && token.value in kHPos) ||
+                (bgPosition in kVPos && token.value in kVPos))
+              return "";
+            bgPosition += " " + token.value;
+          }
+          else {
+            this.ungetToken();
+            bgPosition += " center";
+          }
+        }
+
+        else if (!bgRepeat &&
+		             (token.isIdent("repeat")
+		              || token.isIdent("repeat-x")
+                  || token.isIdent("repeat-y")
+                  || token.isIdent("no-repeat"))) {
+          bgRepeat = token.value;
+        }
+
+        else if (!bgImage &&
+                 (token.isFunction("url(")
+                  || token.isIdent("none"))) {
+          bgImage = token.value;
+          if (token.isFunction("url(")) {
+            token = this.getToken(true, true);
+            var url = this.parseURL(token); // TODO
+            if (url)
+              bgImage += url;
+            else
+              return "";
+          }
+        }
+
+        else {
+          var color = this.parseColor(token);
+          if (!bgColor && color)
+            bgColor = color;
+	        else
+	          return "";
+        }
+
+      }
+
+      token = this.getToken(true, true);
+    }
+
+    // create the declarations
+    this.mScanner.forgetState();
+    bgColor = bgColor ? bgColor : "transparent";
+    bgImage = bgImage ? bgImage : "none";
+    bgRepeat = bgRepeat ? bgRepeat : "repeat";
+    bgAttachment = bgAttachment ? bgAttachment : "scroll";
+    bgPosition = bgPosition ? bgPosition : "top left";
+
+    aDecl.push(this._createJscsspDeclaration("background-color", bgColor));
+    aDecl.push(this._createJscsspDeclaration("background-image", bgImage));
+    aDecl.push(this._createJscsspDeclaration("background-repeat", bgRepeat));
+    aDecl.push(this._createJscsspDeclaration("background-attachment", bgAttachment));
+    aDecl.push(this._createJscsspDeclaration("background-position", bgPosition));
+    return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
+  },
+
+  _createJscsspDeclaration: function(property, value)
+  {
+    var decl = new jscsspDeclaration();
+    decl.property = property;
+    decl.value = value;
+    decl.parsedCssText = property + ": " + value + ";";
+    return decl;
+  },
+  
+  parseURL: function(token)
+  {
+    var value = "";
+    if (token.isString())
+    {
+      value += token.value;
+      token = this.getToken(true, true);
+    }
+    else
+	    while (true)
+	    {
+	      if (!token.isNotNull())
+	        return "";
+	      if (token.isSymbol(")")) {
+          break;
+        }
+        value += token.value;
+        token = this.getToken(false, false);
+	    }
+
+    if (token.isSymbol(")"))
+      return value + ")";
+    return "";
+  },
+
+  parseColor: function(token)
+  {
+    var color = "";
+    if (token.isFunction("rgb(")
+        || token.isFunction("rgba(")) {
+	    color = token.value;
+	    var isRgba = token.isFunction("rgba(")
+	    token = this.getToken(true, true);
+	    if (!token.isDimension() && !token.isPercentage())
+	      return "";
+	    color += token.value;
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(","))
+	      return "";
+	    color += ", ";
+	
+	    token = this.getToken(true, true);
+	    if (!token.isDimension() && !token.isPercentage())
+	      return "";
+	    color += token.value;
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(","))
+	      return "";
+	    color += ", ";
+	
+	    token = this.getToken(true, true);
+	    if (!token.isDimension() && !token.isPercentage())
+	      return "";
+	    color += token.value;
+	
+	    if (isRgba) {
+	      token = this.getToken(true, true);
+	      if (!token.isSymbol(","))
+	        return "";
+	      color += ", ";
+	
+	      token = this.getToken(true, true);
+	      if (!token.isDimension())
+	        return "";
+	      color += token.value;
+	    }
+	
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(")"))
+	      return "";
+	    color += token.value;
+	  }
+	
+	  else if (token.isFunction("hsl(")
+             || token.isFunction("hsla(")) {
+	    color = token.value;
+	    var isHsla = token.isFunction("hsla(")
+	    token = this.getToken(true, true);
+	    if (!token.isDimension())
+	      return "";
+	    color += token.value;
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(","))
+	      return "";
+	    color += ", ";
+	
+	    token = this.getToken(true, true);
+	    if (!token.isPercentage())
+	      return "";
+	    color += token.value;
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(","))
+	      return "";
+	    color += ", ";
+	
+	    token = this.getToken(true, true);
+	    if (!token.isPercentage())
+	      return "";
+	    color += token.value;
+	
+	    if (isHsla) {
+	      token = this.getToken(true, true);
+	      if (!token.isSymbol(","))
+	        return "";
+	      color += ", ";
+	
+	      token = this.getToken(true, true);
+	      if (!token.isDimension())
+	        return "";
+	      color += token.value;
+	    }
+	
+	    token = this.getToken(true, true);
+	    if (!token.isSymbol(")"))
+	      return "";
+	    color += token.value;
+	  }
+
+    else if (token.isIdent()
+             && (token.value in this.kCOLOR_NAMES))
+      color = token.value;
+
+    else if (token.isSymbol("#")) {
+      token = this.getHexValue();
+      if (!token.isHex())
+        return "";
+      var length = token.value.length;
+      if (length != 3 && length != 6)
+        return "";
+      if (token.value.match( /[a-fA-F0-9]/g ).length != length)
+        return "";
+      color = "#" + token.value;
+    }
+    return color;
+  },
+
   parseDeclaration: function(aToken, aDecl, aAcceptPriority) {
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var blocks = [];
     if (aToken.isIdent()) {
-      var descriptor = aToken.value;
+      var descriptor = aToken.value.toLowerCase();
       var token = this.getToken(true, true);
       if (token.isSymbol(":")) {
         var token = this.getToken(true, true);
-        var value = "";
-        var foundPriority = false;
-        while (token.isNotNull()) {
-          if ((token.isSymbol(";") || token.isSymbol("}"))
-              && !blocks.length) {
-            if (token.isSymbol("}"))
-              this.ungetToken();
-            break;
-          } else {
-            // if we already found !important, the only token we
-            // should accept is whitespace; it's an error otherwise
-            if (foundPriority && !token.isWhitespace()) {
-              descriptor = "";
-              value = "";
-              break;
-            }
-            value += token.value;
-          }
 
+        var value = "";
+        var declarations = [];
+        switch (descriptor) {
+          case "background":
+            value = this.parseBackgroundShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "margin":
+          case "padding":
+            value = this.parseMarginOrPadding(token, declarations, aAcceptPriority, descriptor);
+            break;
+          default:
+            value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor);
+            break;
+        }
+        token = this.currentToken;
+        if (value) // no error above
+        {
+          var priority = false;
           if (token.isSymbol("!")) {
             token = this.getToken(true, true);
-            if (token.isIdent("important")
-                && aAcceptPriority)
-              foundPriority = true;
-            else {
-              // !something_else, it's an error...
-              descriptor = "";
-              value = "";
-              break;
-            }
-          } else if (token.isSymbol("{")
-                     || token.isSymbol("(")
-                     || token.isSymbol("[")
-                     || token.isFunction()) {
-            blocks.push(token.isFunction() ? "(" : token.value);
-          } else if (token.isSymbol("}")
-                     || token.isSymbol(")")
-                     || token.isSymbol("]")) {
-            if (blocks.length) {
-              var ontop = blocks[blocks.length - 1];
-              if ((token.isSymbol("}") && ontop == "{")
-                  || (token.isSymbol(")") && ontop == "(")
-                  || (token.isSymbol("]") && ontop == "[")) {
-                blocks.pop();
+            if (token.isIdent("important")) {
+              priority = true;
+              token = this.getToken(true, true);
+				      if (token.isSymbol(";") || token.isSymbol("}")) {
+				        if (token.isSymbol("}"))
+				          this.ungetToken();
               }
+              else return "";
             }
-          } else if (foundPriority && aAcceptPriority) {
-            descriptor = "";
-            value = "";
-            break;
+            else return "";
           }
-          token = this.getToken(false, true);
-        }
-        if (descriptor && value) {
-          CSSScanner.forgetState();
-          var decl = new jscsspDeclaration();
-          decl.property = descriptor;
-          decl.value = value;
-          decl.parsedCssText = descriptor + ": " + value + ";";
-          aDecl.push(decl);
-          return decl.parsedCssText;
+          else if  (token.isNotNull() && !token.isSymbol(";") && !token.isSymbol("}"))
+            return "";
+          for (var i = 0; i < declarations.length; i++) {
+            declarations[i].priority = priority;
+            aDecl.push(declarations[i]);
+          }
+          return descriptor + ": " + value + ";";
         }
       }
-    } else if (aToken.isComment()) {
-      CSSScanner.forgetState();
+    }
+    else if (aToken.isComment()) {
+      this.mScanner.forgetState();
       var comment = new jscsspComment();
       comment.parsedCssText = aToken.value;
       aDecl.push(comment);
@@ -724,7 +1303,7 @@ var CSSParser = {
     }
 
     // we have an error here, let's skip it
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     var s = aToken.value;
     blocks = [];
     var token = this.getToken(false, false);
@@ -760,7 +1339,7 @@ var CSSParser = {
     var s = aToken.value;
     var valid = false;
     var mediaRule = new jscsspMediaRule();
-    CSSScanner.preserveState();
+    this.mScanner.preserveState();
     var token = this.getToken(true, true);
     var foundMedia = false;
     while (token.isNotNull()) {
@@ -811,12 +1390,12 @@ var CSSParser = {
       }
     }
     if (valid) {
-      CSSScanner.forgetState();
+      this.mScanner.forgetState();
       mediaRule.parsedCssText = s;
       aSheet.cssRules.push(mediaRule);
       return true;
     }
-    CSSScanner.restoreState();
+    this.mScanner.restoreState();
     return false;
   },
 
@@ -1055,7 +1634,7 @@ var CSSParser = {
     if (!aString)
       return null; // early way out if we can
 
-    this.init(aString);
+    this.mScanner.init(aString);
     var sheet = new jscsspStylesheet();
 
     // @charset can only appear at first char of the stylesheet
@@ -1127,7 +1706,8 @@ var CSSParser = {
     }
 
     return sheet;
-  }
+  },
+
 };
 
 
@@ -1152,6 +1732,9 @@ jscsspToken.BEGINSMATCH_TYPE = 10;
 jscsspToken.ENDSMATCH_TYPE = 11;
 jscsspToken.CONTAINSMATCH_TYPE = 12;
 jscsspToken.SYMBOL_TYPE = 13;
+jscsspToken.DIMENSION_TYPE = 14;
+jscsspToken.PERCENTAGE_TYPE = 15;
+jscsspToken.HEX_TYPE = 16;
 
 jscsspToken.prototype = {
 
@@ -1233,6 +1816,21 @@ jscsspToken.prototype = {
   isSymbol: function(c)
   {
     return this._isOfType(jscsspToken.SYMBOL_TYPE, c);
+  },
+
+  isDimension: function()
+  {
+    return this._isOfType(jscsspToken.DIMENSION_TYPE);
+  },
+
+  isPercentage: function()
+  {
+    return this._isOfType(jscsspToken.PERCENTAGE_TYPE);
+  },
+
+  isHex: function()
+  {
+    return this._isOfType(jscsspToken.HEX_TYPE);
   }
 }
 
@@ -1301,10 +1899,10 @@ jscsspCharsetRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(false, false);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(false, false);
     if (token.isAtRule("@charset")) {
-      if (CSSParser.parseCharsetRule(token, sheet)) {
+      if (parser.parseCharsetRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.encoding = newRule.encoding;
         this.parsedCssText = newRule.parsedCssText;
@@ -1343,8 +1941,8 @@ jscsspComment.prototype = {
   },
 
   set cssText(val) {
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, false);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, false);
     if (token.isComment())
       this.parsedCssText = token.value;
     else
@@ -1380,10 +1978,10 @@ jscsspImportRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (token.isAtRule("@import")) {
-      if (CSSParser.parseImportRule(token, sheet)) {
+      if (parser.parseImportRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.href = newRule.href;
         this.media = newRule.media;
@@ -1414,10 +2012,10 @@ jscsspNamespaceRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (token.isAtRule("@namespace")) {
-      if (CSSParser.parseNamespaceRule(token, sheet)) {
+      if (parser.parseNamespaceRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.url = newRule.url;
         this.prefix = newRule.prefix;
@@ -1444,15 +2042,15 @@ jscsspDeclaration.prototype = {
   get cssText() {
     return this.property + ": "
                     + this.value
-                    + (this.priority ? this.priority : "")
+                    + (this.priority ? " !important" : "")
                     + ";";
   },
 
   set cssText(val) {
     var declarations = [];
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
-    if (CSSParser.parseDeclaration(token, declarations, true)
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
+    if (parser.parseDeclaration(token, declarations, true)
         && declarations.length
         && declarations[0].type == kJscsspSTYLE_DECLARATION) {
       var newDecl = declarations.cssRules[0];
@@ -1488,10 +2086,10 @@ jscsspFontFaceRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (token.isAtRule("@font-face")) {
-      if (CSSParser.parseFontFaceRule(token, sheet)) {
+      if (parser.parseFontFaceRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.descriptors = newRule.descriptors;
         this.parsedCssText = newRule.parsedCssText;
@@ -1525,10 +2123,10 @@ jscsspMediaRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (token.isAtRule("@media")) {
-      if (CSSParser.parseMediaRule(token, sheet)) {
+      if (parser.parseMediaRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.cssRules = newRule.cssRules;
         this.media = newRule.media;
@@ -1563,10 +2161,10 @@ jscsspStyleRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
-      if (CSSParser.parseStyleRule(token, sheet)) {
+      if (parser.parseStyleRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.mSelectorText = newRule.mSelectorText;
         this.declarations = newRule.declarations;
@@ -1582,10 +2180,10 @@ jscsspStyleRule.prototype = {
   },
 
   set selectorText(val) {
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
-      var s = CSSParser.parseSelector(token, true);
+      var s = parser.parseSelector(token, true);
       if (s) {
         this.mSelectorText = s;
         return;
@@ -1619,10 +2217,10 @@ jscsspPageRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    CSSParser.init(val);
-    var token = CSSParser.getToken(true, true);
+    var parser = new CSSParser(val);;
+    var token = parser.getToken(true, true);
     if (token.isAtRule("@page")) {
-      if (CSSParser.parsePageRule(token, sheet)) {
+      if (parser.parsePageRule(token, sheet)) {
         var newRule = sheet.cssRules[0];
         this.pageSelector = newRule.pageSelector;
         this.declarations = newRule.declarations;
@@ -1633,3 +2231,4 @@ jscsspPageRule.prototype = {
     throw DOMException.SYNTAX_ERR;
   }
 };
+
