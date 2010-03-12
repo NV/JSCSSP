@@ -602,7 +602,7 @@ CSSParser.prototype = {
 
     this.mToken = this.mScanner.nextToken();
     while (this.mToken &&
-           ((aSkipWS && this.mToken.isWhitespace()) ||
+           ((aSkipWS && this.mToken.isWhiteSpace()) ||
             (aSkipComment && this.mToken.isComment())))
       this.mToken = this.mScanner.nextToken();
     return this.mToken;
@@ -776,7 +776,7 @@ CSSParser.prototype = {
                 s += ")";
                 break;
               }
-            } else if (token.isWhitespace()) {
+            } else if (token.isWhiteSpace()) {
               var nextToken = this.lookAhead(false, false);
               if (nextToken && nextToken.isSymbol(")")) {
                 s += ")";
@@ -1673,7 +1673,7 @@ CSSParser.prototype = {
           if (r)
             s += r;
         }
-        token = this.getToken(true, true);
+        token = this.getToken(true, false);
       }
     }
     if (valid) {
@@ -1771,7 +1771,7 @@ CSSParser.prototype = {
       }
       // now combinators and grouping...
       else if (!combinatorFound
-          && (token.isWhitespace()
+          && (token.isWhiteSpace()
               || token.isSymbol(">")
               || token.isSymbol("+")
               || token.isSymbol("~"))) {
@@ -1950,7 +1950,7 @@ CSSParser.prototype = {
     while (true) {
       if (!token.isNotNull())
         break;
-      if (token.isWhitespace())
+      if (token.isWhiteSpace())
       {
         if (aTryToPreserveWhitespaces)
           this.addWhitespace(sheet, token.value);
@@ -2047,7 +2047,7 @@ jscsspToken.prototype = {
     return (this.type == aType && (!aValue || this.value.toLowerCase() == aValue));
   },
 
-  isWhitespace: function(w)
+  isWhiteSpace: function(w)
   {
     return this._isOfType(jscsspToken.WHITESPACE_TYPE, w);
   },
@@ -2198,7 +2198,7 @@ jscsspCharsetRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(false, false);
     if (token.isAtRule("@charset")) {
       if (parser.parseCharsetRule(token, sheet)) {
@@ -2240,7 +2240,7 @@ jscsspComment.prototype = {
   },
 
   set cssText(val) {
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, false);
     if (token.isComment())
       this.parsedCssText = token.value;
@@ -2277,7 +2277,7 @@ jscsspImportRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (token.isAtRule("@import")) {
       if (parser.parseImportRule(token, sheet)) {
@@ -2311,7 +2311,7 @@ jscsspNamespaceRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (token.isAtRule("@namespace")) {
       if (parser.parseNamespaceRule(token, sheet)) {
@@ -2347,7 +2347,7 @@ jscsspDeclaration.prototype = {
 
   set cssText(val) {
     var declarations = [];
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (parser.parseDeclaration(token, declarations, true)
         && declarations.length
@@ -2385,7 +2385,7 @@ jscsspFontFaceRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (token.isAtRule("@font-face")) {
       if (parser.parseFontFaceRule(token, sheet)) {
@@ -2415,14 +2415,14 @@ jscsspMediaRule.prototype = {
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.cssRules.length; i++)
-      rv += this.cssRules[i].cssText + "\n";
+      rv += gTABS + this.cssRules[i].cssText + "\n";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (token.isAtRule("@media")) {
       if (parser.parseMediaRule(token, sheet)) {
@@ -2444,12 +2444,12 @@ function jscsspStyleRule()
   this.type = kJscsspSTYLE_RULE;
   this.parsedCssText = null;
   this.declarations = []
-  this.mSelectorText = null;;
+  this.mSelectorText = null;
 }
 
 jscsspStyleRule.prototype = {
   get cssText() {
-    var rv = gTABS + this.mSelectorText + " {\n";
+    var rv = this.mSelectorText + " {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++)
@@ -2460,7 +2460,7 @@ jscsspStyleRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
       if (parser.parseStyleRule(token, sheet)) {
@@ -2479,7 +2479,7 @@ jscsspStyleRule.prototype = {
   },
 
   set selectorText(val) {
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
       var s = parser.parseSelector(token, true);
@@ -2516,7 +2516,7 @@ jscsspPageRule.prototype = {
 
   set cssText(val) {
     var sheet = {cssRules: []};
-    var parser = new CSSParser(val);;
+    var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (token.isAtRule("@page")) {
       if (parser.parsePageRule(token, sheet)) {
