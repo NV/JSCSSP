@@ -364,6 +364,9 @@ function CSSParser(aString)
   this.mToken = null;
   this.mLookAhead = null;
   this.mScanner = new CSSScanner(aString);
+
+  this.mPreserveWS = true;
+  this.mPreserveComments = true;
 }
 
 CSSParser.prototype = {
@@ -1582,11 +1585,13 @@ CSSParser.prototype = {
       }
     }
     else if (aToken.isComment()) {
-      this.mScanner.forgetState();
-      var comment = new jscsspComment();
-      comment.parsedCssText = aToken.value;
-      aDecl.push(comment);
-      return comment.parsedCssText;
+      if (this.mPreserveComments) {
+	      this.mScanner.forgetState();
+	      var comment = new jscsspComment();
+	      comment.parsedCssText = aToken.value;
+	      aDecl.push(comment);
+      }
+      return aToken.value;
     }
 
     // we have an error here, let's skip it
@@ -1660,7 +1665,7 @@ CSSParser.prototype = {
       s += " { ";
       token = this.getToken(true, false);
       while (token.isNotNull()) {
-        if (token.isComment()) {
+        if (token.isComment() && this.mPreserveComments) {
           s += " " + token.value;
           var comment = new jscsspComment();
           comment.parsedCssText = token.value;
@@ -1933,6 +1938,8 @@ CSSParser.prototype = {
     if (!aString)
       return null; // early way out if we can
 
+    this.mPreserveWS       = aTryToPreserveWhitespaces;
+    this.mPreserveComments = aTryToPreserveComments;
     this.mScanner.init(aString);
     var sheet = new jscsspStylesheet();
 
@@ -1958,7 +1965,7 @@ CSSParser.prototype = {
 
       else if (token.isComment())
       {
-        if (aTryToPreserveComments)
+        if (this.mPreserveComments)
           this.addComment(sheet, token.value);
       }
 
