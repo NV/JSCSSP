@@ -706,7 +706,7 @@ CSSParser.prototype = {
     this.mScanner.preserveState();
     var valid = false;
     var token = this.getToken(true, true);
-    if (token.isNotNull() && token.isString()) {
+    if (token.isNotNull() && token.isString()) { // XXX MISSING url() case
       var href = token.value;
       s += " " + href;
       var media = [];
@@ -761,7 +761,7 @@ CSSParser.prototype = {
           foundURL = true;
           url = token.value;
           s += " " + url;
-        } else if (token.isFunction("url(")) {
+        } else if (token.isFunction("url(")) { // XXX use parseURL()
           s += " url(";
           foundURL = true;
           // get a url here...
