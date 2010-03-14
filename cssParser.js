@@ -936,6 +936,9 @@ CSSParser.prototype = {
           }
         }
       }
+      // XXX must find a better way to store individual values
+      // probably a |values: []| field holding dimensions, percentages
+      // functions, idents, numbers and symbols, in that order.
       value += token.value;
       token = this.getToken(false, true);
     }
