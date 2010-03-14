@@ -1395,6 +1395,7 @@ CSSParser.prototype = {
       {
         if (!token.isNotNull())
           return "";
+        // XXX missing whitespace case just before closing parenthesis
         if (token.isSymbol(")")) {
           break;
         }
