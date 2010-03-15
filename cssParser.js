@@ -678,11 +678,10 @@ CSSParser.prototype = {
   parseCharsetRule: function(aToken, aSheet) {
     var s = aToken.value;
     var token = this.getToken(false, false);
-    if (token.isNotNull()
-        && token.isWhiteSpace(" ")) {
+    if (token.isWhiteSpace(" ")) {
       s += token.value;
       token = this.getToken(false, false);
-      if (token.isNotNull() && token.isString()) {
+      if (token.isString()) {
         s += token.value;
         var encoding = token.value;
         token = this.getToken(false, false);
@@ -704,38 +703,49 @@ CSSParser.prototype = {
   parseImportRule: function(aToken, aSheet) {
     var s = aToken.value;
     this.mScanner.preserveState();
-    var valid = false;
     var token = this.getToken(true, true);
-    if (token.isNotNull() && token.isString()) { // XXX MISSING url() case
-      var href = token.value;
+    var media = [];
+    var href = "";
+    if (token.isString()) {
+      href = token.value;
       s += " " + href;
-      var media = [];
+    }
+    else if (token.isFunction("url(")) {
       token = this.getToken(true, true);
-      while (token.isNotNull() && token.isIdent()) {
-        s += " " + token.value;
-        media.push(token.value);
-        token = this.getToken(true, true);
-        if (!token)
-          break;
-        if (token.isSymbol(",")) {
-          s += ",";
-        } else if (token.isSymbol(";")) {
-          break;
-        } else
-          break;
-        token = this.getToken(true, true);
+      var urlContent = this.parseURL(token);
+      if (urlContent) {
+        href = "url(" + urlContent;
+        s += " " + href;
       }
-      if (token.isSymbol(";")) {
-        valid = true;
-        s += ";"
-        this.mScanner.forgetState();
-        var rule = new jscsspImportRule();
-        rule.parsedCssText = s;
-        rule.href = href;
-        rule.media = media;
-        aSheet.cssRules.push(rule);
-        return true;
-      }
+    }
+
+    if (href) {
+	    token = this.getToken(true, true);
+	    while (token.isIdent()) {
+	      s += " " + token.value;
+	      media.push(token.value);
+	      token = this.getToken(true, true);
+	      if (!token)
+	        break;
+	      if (token.isSymbol(",")) {
+	        s += ",";
+	      } else if (token.isSymbol(";")) {
+	        break;
+	      } else
+	        break;
+	      token = this.getToken(true, true);
+	    }
+	
+	    if (token.isSymbol(";") && href && media.length) {
+	      s += ";"
+	      this.mScanner.forgetState();
+	      var rule = new jscsspImportRule();
+	      rule.parsedCssText = s;
+	      rule.href = href;
+	      rule.media = media;
+	      aSheet.cssRules.push(rule);
+	      return true;
+	    }
     }
     this.mScanner.restoreState();
     this.addUnknownAtRule(aSheet, "@import");
@@ -761,41 +771,14 @@ CSSParser.prototype = {
           foundURL = true;
           url = token.value;
           s += " " + url;
-        } else if (token.isFunction("url(")) { // XXX use parseURL()
-          s += " url(";
-          foundURL = true;
+        } else if (token.isFunction("url(")) {
           // get a url here...
           token = this.getToken(true, true);
-          while (true) {
-            if (!token.isNotNull()) {
-              foundURL = false;
-              break;
-            }
-            if (token.isString()) {
-              url = token.value;
-              s += url;
-              token = this.getToken(true, true);
-              if (token.isSymbol(")")) {
-                s += ")";
-                break;
-              }
-            } else if (token.isWhiteSpace()) {
-              var nextToken = this.lookAhead(false, false);
-              if (nextToken && nextToken.isSymbol(")")) {
-                s += ")";
-                this.getToken(false, false);
-                break;
-              } else
-                foundURL = false;
-            } else if (token.isSymbol(")")) {
-              s += ")";
-              break;
-            } else {
-              url += token.value;
-              s += token.value;
-            }
-
-            token = this.getToken(false, false);
+          var urlContent = this.parseURL(token);
+          if (urlContent) {
+            url += urlContent;
+            foundURL = true;
+            s += " " + url;
           }
         }
       }
@@ -1398,7 +1381,14 @@ CSSParser.prototype = {
       {
         if (!token.isNotNull())
           return "";
-        // XXX missing whitespace case just before closing parenthesis
+        if (token.isWhiteSpace()) {
+          token = this.lookAhead(true, true);
+          // if next token is not a closing parenthesis, that's an error
+          if (!token.isSymbol(")")) {
+            token = this.currentToken;
+            break;
+          }
+        }
         if (token.isSymbol(")")) {
           break;
         }
