@@ -245,7 +245,7 @@ CSSScanner.prototype = {
     if (this.startsWithIdent(c, this.peek())) { // DIMENSION
       var unit = this.gatherIdent(c);
       s += unit;
-      return new jscsspToken(jscsspToken.DIMENSION_TYPE, s);
+      return new jscsspToken(jscsspToken.DIMENSION_TYPE, s, unit);
     }
     else if (c == "%") {
       s += "%";
@@ -955,6 +955,7 @@ CSSParser.prototype = {
       }
 
       else if (token.isDimension()
+              || token.isNumber("0")
               || token.isPercentage()
               || token.isIdent("auto")) {
         values.push(token.value);
@@ -1071,6 +1072,111 @@ CSSParser.prototype = {
     return top + " " + right + " " + bottom + " " + left;
   },
 
+  parseCueShorthand: function(token, declarations, aAcceptPriority)
+  {
+    var before = "";
+    var after = "";
+
+    var values = [];
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (token.isIdent("none"))
+        values.push(token.value);
+      else if (token.isFunction("url(")) {
+        var token = this.getToken(true, true);
+        var urlContent = this.parseURL(token);
+        if (urlContent)
+          values.push("url(" + urlContent);
+        else
+          return "";
+      }
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        before = values[0];
+        after = before;
+        break;
+      case 2:
+        before = values[0];
+        after = values[1];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("cue-before", before));
+    aDecl.push(this._createJscsspDeclaration("cue-after", after));
+    return before + " " + after;
+  },
+
+  parsePauseShorthand: function(token, declarations, aAcceptPriority)
+  {
+    var before = "";
+    var after = "";
+
+    var values = [];
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (token.isDimensionOfUnit("ms")
+               || token.isDimensionOfUnit("s")
+               || token.isPercentage()
+               || token.isNumber("0"))
+        values.push(token.value);
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        before = values[0];
+        after = before;
+        break;
+      case 2:
+        before = values[0];
+        after = values[1];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("pause-before", before));
+    aDecl.push(this._createJscsspDeclaration("pause-after", after));
+    return before + " " + after;
+  },
+
   parseBorderWidthShorthand: function(token, aDecl, aAcceptPriority)
   {
     var top = null;
@@ -1093,6 +1199,7 @@ CSSParser.prototype = {
       }
 
       else if (token.isDimension()
+               || token.isNumber("0")
                || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES)) {
         values.push(token.value);
       }
@@ -1159,7 +1266,8 @@ CSSParser.prototype = {
 
       else if (!bWidth &&
                (token.isDimension()
-                || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES))) {
+                || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES)
+                || token.isNumber("0"))) {
         bWidth = token.value;
       }
 
@@ -1236,10 +1344,11 @@ CSSParser.prototype = {
         else if (!bgPosition &&
                  ((token.isIdent() && token.value in kPos)
                   || token.isDimension()
+                  || token.isNumber("0")
                   || token.isPercentage())) {
           bgPosition = token.value;
           token = this.getToken(true, true);
-          if (token.isDimension() || token.isPercentage()) {
+          if (token.isDimension() || token.isNumber("0") || token.isPercentage()) {
             bgPosition += " " + token.value;
           }
           else if (token.isIdent() && token.value in kPos) {
@@ -1305,60 +1414,6 @@ CSSParser.prototype = {
     return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
   },
 
-  parseCueShorthand: function(token, aDecl, aAcceptPriority)
-  {
-    var before = null;
-    var after = null;
-
-    var values = [];
-    while (true) {
-
-      if (!token.isNotNull())
-        break;
-
-      if (token.isSymbol(";")
-          || (aAcceptPriority && token.isSymbol("!"))
-          || token.isSymbol("}")) {
-        if (token.isSymbol("}"))
-          this.ungetToken();
-        break;
-      }
-
-      else if (token.isIdent("none")) {
-        values.push(token.value);
-      }
-      else if (token.isFunction("url(")) {
-        var url = this.parseURL(token)
-        if (url)
-          values.push("url(" + url);
-        else
-          return "";
-      }
-      else
-        return "";
-
-      token = this.getToken(true, true);
-    }
-
-    var count = values.length;
-    switch (count) {
-      case 1:
-        after = values[0];
-        before = after;
-        break;
-      case 2:
-        before = values[0];
-        after = before;
-        break;
-      default:
-        return "";
-    }
-    this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("cue-before", before));
-    aDecl.push(this._createJscsspDeclaration("cue-after", after));
-   return before + " " + after;
-  },
-
   _createJscsspDeclaration: function(property, value)
   {
     var decl = new jscsspDeclaration();
@@ -1409,7 +1464,7 @@ CSSParser.prototype = {
       color = token.value;
       var isRgba = token.isFunction("rgba(")
       token = this.getToken(true, true);
-      if (!token.isDimension() && !token.isPercentage())
+      if (!token.isNumber() && !token.isPercentage())
         return "";
       color += token.value;
       token = this.getToken(true, true);
@@ -1418,7 +1473,7 @@ CSSParser.prototype = {
       color += ", ";
   
       token = this.getToken(true, true);
-      if (!token.isDimension() && !token.isPercentage())
+      if (!token.isNumber() && !token.isPercentage())
         return "";
       color += token.value;
       token = this.getToken(true, true);
@@ -1427,7 +1482,7 @@ CSSParser.prototype = {
       color += ", ";
   
       token = this.getToken(true, true);
-      if (!token.isDimension() && !token.isPercentage())
+      if (!token.isNumber() && !token.isPercentage())
         return "";
       color += token.value;
   
@@ -1438,7 +1493,7 @@ CSSParser.prototype = {
         color += ", ";
   
         token = this.getToken(true, true);
-        if (!token.isDimension())
+        if (!token.isNumber())
           return "";
         color += token.value;
       }
@@ -1454,7 +1509,7 @@ CSSParser.prototype = {
       color = token.value;
       var isHsla = token.isFunction("hsla(")
       token = this.getToken(true, true);
-      if (!token.isDimension())
+      if (!token.isNumber())
         return "";
       color += token.value;
       token = this.getToken(true, true);
@@ -1483,7 +1538,7 @@ CSSParser.prototype = {
         color += ", ";
   
         token = this.getToken(true, true);
-        if (!token.isDimension())
+        if (!token.isNumber())
           return "";
         color += token.value;
       }
@@ -1546,6 +1601,13 @@ CSSParser.prototype = {
           case "border-left":
           case "border":
             value = this.parseBorderEdgeShorthand(token, declarations, aAcceptPriority, descriptor);
+            break;
+          case "cue":
+            value = this.parseCueShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "pause":
+          case "cue":
+            value = this.parsePauseShorthand(token, declarations, aAcceptPriority);
             break;
           default:
             value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor);
@@ -2011,10 +2073,11 @@ CSSParser.prototype = {
 };
 
 
-function jscsspToken(aType, aValue)
+function jscsspToken(aType, aValue, aUnit)
 {
   this.type = aType;
   this.value = aValue;
+  this.unit = aUnit;
 }
 
 jscsspToken.NULL_TYPE = 0;
@@ -2063,9 +2126,9 @@ jscsspToken.prototype = {
     return this._isOfType(jscsspToken.COMMENT_TYPE);
   },
 
-  isNumber: function()
+  isNumber: function(n)
   {
-    return this._isOfType(jscsspToken.NUMBER_TYPE);
+    return this._isOfType(jscsspToken.NUMBER_TYPE, n);
   },
 
   isSymbol: function(c)
@@ -2131,6 +2194,11 @@ jscsspToken.prototype = {
   isHex: function()
   {
     return this._isOfType(jscsspToken.HEX_TYPE);
+  },
+
+  isDimensionOfUnit: function(aUnit)
+  {
+    return (this.isDimension() && this.unit == aUnit);
   }
 }
 
