@@ -1506,6 +1506,12 @@ CSSParser.prototype = {
             while (true) {
               if (!token.isNotNull())
                 break;
+				      else if (token.isSymbol(";")
+				          || (aAcceptPriority && token.isSymbol("!"))
+				          || token.isSymbol("}")) {
+			          this.ungetToken();
+				        break;
+				      }
               else if (token.isIdent() && token.value in kFamily) {
                 fFamily += token.value;
                 break;
@@ -1521,6 +1527,7 @@ CSSParser.prototype = {
               else
                 return "";
             }
+            token = this.getToken(true, true);
           }
 
           else {
