@@ -1433,7 +1433,7 @@ CSSParser.prototype = {
     var fWeight = null;
     var fSize = null;
     var fLineHeight = null;
-    var fFamily = null;
+    var fFamily = "";
     var fSystem = null;
 
     var normalCount = 0;
