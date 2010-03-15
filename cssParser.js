@@ -1477,14 +1477,15 @@ CSSParser.prototype = {
   
           else if (!fSize
                    && ((token.isIdent() && (token.value in kSize))
-                       || token.isDimension())) {
+                       || token.isDimension()
+                       || token.isPercentage())) {
             fSize = token.value;
             var token = this.getToken(false, false);
-            if (nextToken.isSymbol("/")) {
+            if (token.isSymbol("/")) {
               token = this.getToken(false, false);
               if (!fLineHeight &&
                   (token.isDimension() || token.isNumber() || token.isPercentage())) {
-                fLineheight = token.value;
+                fLineHeight = token.value;
               }
               else
                 return "";
