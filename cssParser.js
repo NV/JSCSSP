@@ -1346,7 +1346,7 @@ CSSParser.prototype = {
     return top + " " + right + " " + bottom + " " + left;
   },
 
-  parseBorderEdgeShorthand: function(token, aDecl, aAcceptPriority, aProperty)
+  parseBorderEdgeOrOutlineShorthand: function(token, aDecl, aAcceptPriority, aProperty)
   {
     var bWidth = null;
     var bStyle = null;
@@ -1377,7 +1377,8 @@ CSSParser.prototype = {
       }
 
       else {
-        var color = this.parseColor(token);
+        var color = (aProperty == "outline" && token.isIdent("invert"))
+                    ? "invert" : this.parseColor(token);
         if (!bColor && color)
           bColor = color;
         else
@@ -1546,9 +1547,9 @@ CSSParser.prototype = {
       }
 
       else if (!lImage && token.isFunction("url")) {
-	      token = this.getToken(true, true);
-	      var urlContent = this.parseURL(token);
-	      if (urlContent) {
+        token = this.getToken(true, true);
+        var urlContent = this.parseURL(token);
+        if (urlContent) {
           lImage = "url(" + urlContent;
         }
         else
@@ -1907,7 +1908,8 @@ CSSParser.prototype = {
           case "border-bottom":
           case "border-left":
           case "border":
-            value = this.parseBorderEdgeShorthand(token, declarations, aAcceptPriority, descriptor);
+          case "outline":
+            value = this.parseBorderEdgeOrOutlineShorthand(token, declarations, aAcceptPriority, descriptor);
             break;
           case "cue":
             value = this.parseCueShorthand(token, declarations, aAcceptPriority);
