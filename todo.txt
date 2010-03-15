@@ -1,0 +1,6 @@
+- parse 'inherit' value for shorthands
+- parse escaped chars and unicode chars
+- parse 'list-style' and 'outline' shorthands
+- try to link to browser's CSS OM (not sure it's feasible)
+- serialization controls
+- keep track of individual values in declarations
