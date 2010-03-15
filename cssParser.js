@@ -1567,7 +1567,7 @@ CSSParser.prototype = {
   {
     var decl = new jscsspDeclaration();
     decl.property = property;
-    decl.value = value;
+    decl.value = this.trim11(value);
     decl.parsedCssText = property + ": " + value + ";";
     return decl;
   },
