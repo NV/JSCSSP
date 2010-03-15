@@ -720,32 +720,32 @@ CSSParser.prototype = {
     }
 
     if (href) {
-	    token = this.getToken(true, true);
-	    while (token.isIdent()) {
-	      s += " " + token.value;
-	      media.push(token.value);
-	      token = this.getToken(true, true);
-	      if (!token)
-	        break;
-	      if (token.isSymbol(",")) {
-	        s += ",";
-	      } else if (token.isSymbol(";")) {
-	        break;
-	      } else
-	        break;
-	      token = this.getToken(true, true);
-	    }
-	
-	    if (token.isSymbol(";") && href && media.length) {
-	      s += ";"
-	      this.mScanner.forgetState();
-	      var rule = new jscsspImportRule();
-	      rule.parsedCssText = s;
-	      rule.href = href;
-	      rule.media = media;
-	      aSheet.cssRules.push(rule);
-	      return true;
-	    }
+      token = this.getToken(true, true);
+      while (token.isIdent()) {
+        s += " " + token.value;
+        media.push(token.value);
+        token = this.getToken(true, true);
+        if (!token)
+          break;
+        if (token.isSymbol(",")) {
+          s += ",";
+        } else if (token.isSymbol(";")) {
+          break;
+        } else
+          break;
+        token = this.getToken(true, true);
+      }
+  
+      if (token.isSymbol(";") && href && media.length) {
+        s += ";"
+        this.mScanner.forgetState();
+        var rule = new jscsspImportRule();
+        rule.parsedCssText = s;
+        rule.href = href;
+        rule.media = media;
+        aSheet.cssRules.push(rule);
+        return true;
+      }
     }
     this.mScanner.restoreState();
     this.addUnknownAtRule(aSheet, "@import");
@@ -1457,41 +1457,41 @@ CSSParser.prototype = {
         }
 
         else {
-	        if (!fStyle
-	                 && token.isIdent()
-	                 && (token.value in kStyle)) {
-	          fStyle = token.value;
-	        }
-	
-	        else if (!fVariant
-	                 && token.isIdent()
-	                 && (token.value in kVariant)) {
-	          fVariant = token.value;
-	        }
-	
-	        else if (!fWeight
-	                 && (token.isIdent() || token.isNumber())
-	                 && (token.value in kWeight)) {
-	          fWeight = token.value;
-	        }
-	
-	        else if (!fSize
-	                 && ((token.isIdent() && (token.value in kSize))
-	                     || token.isDimension())) {
-	          fSize = token.value;
-	          var token = this.getToken(false, false);
-	          if (nextToken.isSymbol("/")) {
-	            token = this.getToken(false, false);
-	            if (!fLineHeight &&
-	                (token.isDimension() || token.isNumber() || token.isPercentage())) {
-	              fLineheight = token.value;
-	            }
-	            else
-	              return "";
-	          }
-	          else
-	            this.ungetToken();
-	        }
+          if (!fStyle
+                   && token.isIdent()
+                   && (token.value in kStyle)) {
+            fStyle = token.value;
+          }
+  
+          else if (!fVariant
+                   && token.isIdent()
+                   && (token.value in kVariant)) {
+            fVariant = token.value;
+          }
+  
+          else if (!fWeight
+                   && (token.isIdent() || token.isNumber())
+                   && (token.value in kWeight)) {
+            fWeight = token.value;
+          }
+  
+          else if (!fSize
+                   && ((token.isIdent() && (token.value in kSize))
+                       || token.isDimension())) {
+            fSize = token.value;
+            var token = this.getToken(false, false);
+            if (nextToken.isSymbol("/")) {
+              token = this.getToken(false, false);
+              if (!fLineHeight &&
+                  (token.isDimension() || token.isNumber() || token.isPercentage())) {
+                fLineheight = token.value;
+              }
+              else
+                return "";
+            }
+            else
+              this.ungetToken();
+          }
 
           else if (token.isIdent("normal")) {
             normalCount++;
@@ -1506,12 +1506,12 @@ CSSParser.prototype = {
             while (true) {
               if (!token.isNotNull())
                 break;
-				      else if (token.isSymbol(";")
-				          || (aAcceptPriority && token.isSymbol("!"))
-				          || token.isSymbol("}")) {
-			          this.ungetToken();
-				        break;
-				      }
+              else if (token.isSymbol(";")
+                  || (aAcceptPriority && token.isSymbol("!"))
+                  || token.isSymbol("}")) {
+                this.ungetToken();
+                break;
+              }
               else if (token.isIdent() && token.value in kFamily) {
                 fFamily += token.value;
                 break;
@@ -1526,13 +1526,13 @@ CSSParser.prototype = {
               }
               else
                 return "";
+              token = this.getToken(true, true);
             }
-            token = this.getToken(true, true);
           }
 
           else {
             return "";
-	        }
+          }
         }
 
       }
@@ -1792,10 +1792,10 @@ CSSParser.prototype = {
     }
     else if (aToken.isComment()) {
       if (this.mPreserveComments) {
-	      this.mScanner.forgetState();
-	      var comment = new jscsspComment();
-	      comment.parsedCssText = aToken.value;
-	      aDecl.push(comment);
+        this.mScanner.forgetState();
+        var comment = new jscsspComment();
+        comment.parsedCssText = aToken.value;
+        aDecl.push(comment);
       }
       return aToken.value;
     }
@@ -1897,16 +1897,16 @@ CSSParser.prototype = {
     return false;
   },
 
-	trim11: function(str) {
-	  str = str.replace(/^\s+/, '');
-	  for (var i = str.length - 1; i >= 0; i--) {
-	    if (/\S/.test(str.charAt(i))) {
-	      str = str.substring(0, i + 1);
-	      break;
-	    }
-	  }
-	  return str;
-	},
+  trim11: function(str) {
+    str = str.replace(/^\s+/, '');
+    for (var i = str.length - 1; i >= 0; i--) {
+      if (/\S/.test(str.charAt(i))) {
+        str = str.substring(0, i + 1);
+        break;
+      }
+    }
+    return str;
+  },
 
   parseStyleRule: function(aToken, aCssRules) {
     // first let's see if we have a selector here...
