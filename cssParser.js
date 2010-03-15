@@ -587,6 +587,106 @@ CSSParser.prototype = {
     "windowtext": true
   },
 
+  kLIST_STYLE_TYPE_NAMES: {
+    "decimal": true,
+    "decimal-leading-zero": true,
+    "lower-roman": true,
+    "upper-roman": true,
+    "georgian": true,
+    "armenian": true,
+    "lower-latin": true,
+    "lower-alpha": true,
+    "upper-latin": true,
+    "upper-alpha": true,
+    "lower-greek": true,
+
+    "disc": true,
+    "circle": true,
+    "square": true,
+    "none": true,
+    
+    /* CSS 3 */
+    "box": true,
+    "check": true,
+    "diamond": true,
+    "hyphen": true,
+
+    "lower-armenian": true,
+    "cjk-ideographic": true,
+    "ethiopic-numeric": true,
+    "hebrew": true,
+    "japanese-formal": true,
+    "japanese-informal": true,
+    "simp-chinese-formal": true,
+    "simp-chinese-informal": true,
+    "syriac": true,
+    "tamil": true,
+    "trad-chinese-formal": true,
+    "trad-chinese-informal": true,
+    "upper-armenian": true,
+    "arabic-indic": true,
+    "binary": true,
+    "bengali": true,
+    "cambodian": true,
+    "khmer": true,
+    "devanagari": true,
+    "gujarati": true,
+    "gurmukhi": true,
+    "kannada": true,
+    "lower-hexadecimal": true,
+    "lao": true,
+    "malayalam": true,
+    "mongolian": true,
+    "myanmar": true,
+    "octal": true,
+    "oriya": true,
+    "persian": true,
+    "urdu": true,
+    "telugu": true,
+    "tibetan": true,
+    "upper-hexadecimal": true,
+    "afar": true,
+    "ethiopic-halehame-aa-et": true,
+    "ethiopic-halehame-am-et": true,
+    "amharic-abegede": true,
+    "ehiopic-abegede-am-et": true,
+    "cjk-earthly-branch": true,
+    "cjk-heavenly-stem": true,
+    "ethiopic": true,
+    "ethiopic-abegede": true,
+    "ethiopic-abegede-gez": true,
+    "hangul-consonant": true,
+    "hangul": true,
+    "hiragana-iroha": true,
+    "hiragana": true,
+    "katakana-iroha": true,
+    "katakana": true,
+    "lower-norwegian": true,
+    "oromo": true,
+    "ethiopic-halehame-om-et": true,
+    "sidama": true,
+    "ethiopic-halehame-sid-et": true,
+    "somali": true,
+    "ethiopic-halehame-so-et": true,
+    "tigre": true,
+    "ethiopic-halehame-tig": true,
+    "tigrinya-er-abegede": true,
+    "ethiopic-abegede-ti-er": true,
+    "tigrinya-et": true,
+    "ethiopic-halehame-ti-et": true,
+    "upper-greek": true,
+    "asterisks": true,
+    "footnotes": true,
+    "circled-decimal": true,
+    "circled-lower-latin": true,
+    "circled-upper-latin": true,
+    "dotted-decimal": true,
+    "double-circled-decimal": true,
+    "filled-circled-decimal": true,
+    "parenthesised-decimal": true,
+    "parenthesised-lower-latin": true
+  },
+
   get currentToken() {
     return this.mToken;
   },
@@ -1414,6 +1514,64 @@ CSSParser.prototype = {
     return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
   },
 
+  parseListStyleShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    const kPosition = { "inside": true, "outside": true };
+
+    var lType = null;
+    var lPosition = null;
+    var lImage = null;
+
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (!lType &&
+               (token.isIdent() && token.value in this.kLIST_STYLE_TYPE_NAMES)) {
+        lType = token.value;
+      }
+
+      else if (!lPosition &&
+               (token.isIdent() && token.value in kPosition)) {
+        lPosition = token.value;
+      }
+
+      else if (!lImage && token.isFunction("url")) {
+	      token = this.getToken(true, true);
+	      var urlContent = this.parseURL(token);
+	      if (urlContent) {
+          lImage = "url(" + urlContent;
+        }
+        else
+          return "";
+      }
+      else if (!token.isIdent("none"))
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    // create the declarations
+    this.mScanner.forgetState();
+    lType = lType ? lType : "none";
+    lImage = lImage ? lImage : "none";
+    lPosition = lPosition ? lPosition : "outside";
+
+    aDecl.push(this._createJscsspDeclaration("list-style-type", lType));
+    aDecl.push(this._createJscsspDeclaration("list-style-position", lPosition));
+    aDecl.push(this._createJscsspDeclaration("list-style-image", lPosition));
+    return lType + " " + lPosition + " " + lPosition;
+  },
+
   parseFontShorthand: function(token, aDecl, aAcceptPriority)
   {
     const kStyle = {"italic": true, "oblique": true };
@@ -1759,6 +1917,9 @@ CSSParser.prototype = {
             break;
           case "font":
             value = this.parseFontShorthand(token, declarations, aAcceptPriority);
+            break;
+          case "list-style":
+            value = this.parseListStyleShorthand(token, declarations, aAcceptPriority);
             break;
           default:
             value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor);
