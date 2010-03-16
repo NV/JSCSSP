@@ -100,6 +100,11 @@ CSSScanner.prototype = {
      SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI
   ],
 
+  kHexValues: {
+    "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
+    "a": 10, "b": 11, "c": 12, "d": 13, "e": 14, "f": 15
+  },
+
   mString : "",
   mPos : 0,
   mPreservedPos : [],
@@ -182,11 +187,49 @@ CSSScanner.prototype = {
     return new jscsspToken(jscsspToken.HEX_TYPE, s);
   },
 
-  gatherIdent: function(c) {
-    var s = c;
+  gatherEscape: function() {
+    var c = this.peek();
+    if (c == -1)
+      return "";
+    if (this.isHexDigit(c)) {
+      var code = 0;
+      for (var i = 0; i < 6; i++) {
+        c = this.read();
+        if (this.isHexDigit(c))
+          code = code * 16 + this.kHexValues[c.toLowerCase()];
+        else if (!this.isHexDigit(c) && !this.isWhiteSpace(c)) {
+          this.pushback();
+          break;
+        }
+        else
+          break;
+      }
+      if (i == 6) {
+        c = this.peek();
+        if (this.isWhiteSpace(c))
+          this.read();
+      }
+      return String.fromCharCode(code);
+    }
     c = this.read();
-    while (c != -1 && this.isIdent(c)) {
+    if (c != "\n")
+      return c;
+    return "";
+  },
+
+  gatherIdent: function(c) {
+    var s = "";
+    if (c == CSS_ESCAPE)
+      s += this.gatherEscape();
+    else
       s += c;
+    c = this.read();
+    while (c != -1
+           && (this.isIdent(c) || c == CSS_ESCAPE)) {
+      if (c == CSS_ESCAPE)
+	      s += this.gatherEscape();
+	    else
+        s += c;
       c = this.read();
     }
     if (c != -1)
@@ -1002,13 +1045,13 @@ CSSParser.prototype = {
       }
   
       if (token.isIdent(this.kINHERIT)) {
-        token = this.getToken(true, true);
         if (value) {
           value = "";
 	        break;
         }
         else {
-          value += token.value;
+          value += this.kINHERIT;
+          token = this.getToken(true, true);
           break;
         }
       }
@@ -1888,9 +1931,9 @@ CSSParser.prototype = {
         if (!token.isNotNull())
           return "";
         if (token.isWhiteSpace()) {
-          token = this.lookAhead(true, true);
+          nextToken = this.lookAhead(true, true);
           // if next token is not a closing parenthesis, that's an error
-          if (!token.isSymbol(")")) {
+          if (!nextToken.isSymbol(")")) {
             token = this.currentToken;
             break;
           }
@@ -2228,6 +2271,10 @@ CSSParser.prototype = {
         s += " { ";
         var token = this.getToken(true, false);
         while (true) {
+          if (!token.isNotNull()) {
+            valid = true;
+            break;
+          }
           if (token.isSymbol("}")) {
             s += "}";
             valid = true;
