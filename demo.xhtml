@@ -39,11 +39,12 @@
   <p>Warning, it's a work in progress. One detail though: no regexps for parsing inside...</p>
   <p>The current document has the following stylesheet attached:</p>
   <textarea style="margin: auto; width: 100%" rows="15" id="source">/* JSCSSP test */
-pre { background-color: #FFFFCC; /* shorthands */ border: 2px silver solid; padding: 1em;
-
-/* at least one of the 2 following properties not recognized by your browser
-   but parsed and preserved by JSCSSP */
--moz-border-radius: 11px; -webkit-border-radius:11px}
+pre { background-color: #FFFFCC; 
+      /* shorthands */ border: 2px silver solid; padding: 1em;
+      /* at least one of the 2 following properties not recognized by your browser
+         but parsed and preserved by JSCSSP */
+      -moz-border-radius: 11px; -webkit-border-radius:11px
+    }
 
 body { font-family: sans-serif; margin: 1em }
 h1 { background-color: silver }
