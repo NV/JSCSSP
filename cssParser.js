@@ -2354,7 +2354,10 @@ CSSParser.prototype = {
               || token.isSymbol(">")
               || token.isSymbol("+")
               || token.isSymbol("~"))) {
-        s += token.value;
+        if (token.isWhiteSpace())
+          s += " ";
+        else
+          s += token.value;
         if (token.isSymbol(">")
             || token.isSymbol("+")
             || token.isSymbol("~"))
