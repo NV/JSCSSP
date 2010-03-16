@@ -4,6 +4,6 @@ DONE parse 'list-style' and 'outline' shorthands
 - try to link to browser's CSS OM (not sure it's feasible)
 - serialization controls
 - keep track of individual values in declarations
-- interactive demo page
+DONE - interactive demo page
 - documentation and web site
 DONE forgot parsing of boder-style shorthand
