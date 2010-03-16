@@ -303,11 +303,25 @@ CSSScanner.prototype = {
     var s = aStop;
     var previousChar = aStop;
     while ((c = this.read()) != -1) {
-      if (c == aStop && previousChar != "\\") {
+      if (c == aStop && previousChar != CSS_ESCAPE) {
         s += c;
         break;
       }
-      s += c;
+      else if (c == CSS_ESCAPE) {
+        var c = this.peek();
+        if (c == -1)
+          break;
+        else if (c == "\n" || c == "\r" || c == "\f") {
+          c = this.read();
+        }
+        else {
+          s += this.gatherEscape();
+          c = this.peek();
+        }
+      }
+      else
+        s += c;
+
       previousChar = c;
     }
     return new jscsspToken(jscsspToken.STRING_TYPE, s);
