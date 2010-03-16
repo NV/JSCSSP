@@ -1158,13 +1158,13 @@ CSSParser.prototype = {
         top = values[0];
         left = values[1];
         right = left;
-        bottom = value[2];
+        bottom = values[2];
         break;
       case 4:
         top = values[0];
         right = values[1];
-        bottom = value[2];
-        left = value[3];
+        bottom = values[2];
+        left = values[3];
         break;
       default:
         return "";
@@ -1233,13 +1233,13 @@ CSSParser.prototype = {
         top = values[0];
         left = values[1];
         right = left;
-        bottom = value[2];
+        bottom = values[2];
         break;
       case 4:
         top = values[0];
         right = values[1];
-        bottom = value[2];
-        left = value[3];
+        bottom = values[2];
+        left = values[3];
         break;
       default:
         return "";
@@ -1420,13 +1420,13 @@ CSSParser.prototype = {
         top = values[0];
         left = values[1];
         right = left;
-        bottom = value[2];
+        bottom = values[2];
         break;
       case 4:
         top = values[0];
         right = values[1];
-        bottom = value[2];
-        left = value[3];
+        bottom = values[2];
+        left = values[3];
         break;
       default:
         return "";
@@ -1491,13 +1491,13 @@ CSSParser.prototype = {
         top = values[0];
         left = values[1];
         right = left;
-        bottom = value[2];
+        bottom = values[2];
         break;
       case 4:
         top = values[0];
         right = values[1];
-        bottom = value[2];
-        left = value[3];
+        bottom = values[2];
+        left = values[3];
         break;
       default:
         return "";
