@@ -370,6 +370,8 @@ function CSSParser(aString)
 }
 
 CSSParser.prototype = {
+  kINHERIT: "inherit",
+
   kBORDER_WIDTH_NAMES: {
       "thin": true,
       "medium": true,
@@ -989,6 +991,7 @@ CSSParser.prototype = {
     var blocks = [];
     var foundPriority = false;
     while (token.isNotNull()) {
+
       if ((token.isSymbol(";")
            || token.isSymbol("}")
            || token.isSymbol("!"))
@@ -998,7 +1001,8 @@ CSSParser.prototype = {
         break;
       }
   
-      if (token.isSymbol("!")) {
+      if (!value && token.isIdent(this.kINHERIT)) {
+        value += token.value;
         break;
       }
       else if (token.isSymbol("{")
@@ -1052,6 +1056,14 @@ CSSParser.prototype = {
         if (token.isSymbol("}"))
           this.ungetToken();
         break;
+      }
+
+      else if (!top && !bottom && !left && !right
+               && token.isIdent(this.kINHERIT)) {
+        top = this.kINHERIT;
+        bottom = this.kINHERIT;
+        left = this.kINHERIT;
+        right = this.kINHERIT;
       }
 
       else if (token.isDimension()
@@ -1124,6 +1136,13 @@ CSSParser.prototype = {
         break;
       }
 
+      else if (this.isIdent(this.kINHERIT)) {
+        top = this.kINHERIT;
+        bottom = this.kINHERIT;
+        left = this.kINHERIT;
+        right = this.kINHERIT;
+      }
+      
       else {
         var color = this.parseColor(token);
         if (color)
@@ -1192,6 +1211,12 @@ CSSParser.prototype = {
         break;
       }
 
+      else if (!before && !after
+               && token.isIdent(this.kINHERIT)) {
+        before = this.kINHERIT;
+        after = this.kINHERIT;
+      }
+
       else if (token.isIdent("none"))
         values.push(token.value);
       else if (token.isFunction("url(")) {
@@ -1247,6 +1272,12 @@ CSSParser.prototype = {
         break;
       }
 
+      else if (!before && !after
+               && token.isIdent(this.kINHERIT)) {
+        before = this.kINHERIT;
+        after = this.kINHERIT;
+      }
+
       else if (token.isDimensionOfUnit("ms")
                || token.isDimensionOfUnit("s")
                || token.isPercentage()
@@ -1298,6 +1329,14 @@ CSSParser.prototype = {
         break;
       }
 
+      else if (!top && !bottom && !left && !right
+               && token.isIdent(this.kINHERIT)) {
+        top = this.kINHERIT;
+        bottom = this.kINHERIT;
+        left = this.kINHERIT;
+        right = this.kINHERIT;
+      }
+      
       else if (token.isDimension()
                || token.isNumber("0")
                || (token.isIdent() && token.value in this.kBORDER_WIDTH_NAMES)) {
@@ -1346,6 +1385,81 @@ CSSParser.prototype = {
     return top + " " + right + " " + bottom + " " + left;
   },
 
+  parseBorderStyleShorthand: function(token, aDecl, aAcceptPriority)
+  {
+    var top = null;
+    var bottom = null;
+    var left = null;
+    var right = null;
+
+    var values = [];
+    while (true) {
+
+      if (!token.isNotNull())
+        break;
+
+      if (token.isSymbol(";")
+          || (aAcceptPriority && token.isSymbol("!"))
+          || token.isSymbol("}")) {
+        if (token.isSymbol("}"))
+          this.ungetToken();
+        break;
+      }
+
+      else if (!top && !bottom && !left && !right
+               && token.isIdent(this.kINHERIT)) {
+        top = this.kINHERIT;
+        bottom = this.kINHERIT;
+        left = this.kINHERIT;
+        right = this.kINHERIT;
+      }
+      
+      else if (token.isIdent() && token.value in this.kBORDER_STYLE_NAMES) {
+        values.push(token.value);
+      }
+      else
+        return "";
+
+      token = this.getToken(true, true);
+    }
+
+    var count = values.length;
+    switch (count) {
+      case 1:
+        top = values[0];
+        bottom = top;
+        left = top;
+        right = top;
+        break;
+      case 2:
+        top = values[0];
+        bottom = top;
+        left = values[1];
+        right = left;
+        break;
+      case 3:
+        top = values[0];
+        left = values[1];
+        right = left;
+        bottom = value[2];
+        break;
+      case 4:
+        top = values[0];
+        right = values[1];
+        bottom = value[2];
+        left = value[3];
+        break;
+      default:
+        return "";
+    }
+    this.mScanner.forgetState();
+    aDecl.push(this._createJscsspDeclaration("border-top-style", top));
+    aDecl.push(this._createJscsspDeclaration("border-right-style", right));
+    aDecl.push(this._createJscsspDeclaration("border-bottom-style", bottom));
+    aDecl.push(this._createJscsspDeclaration("border-left-style", left));
+    return top + " " + right + " " + bottom + " " + left;
+  },
+
   parseBorderEdgeOrOutlineShorthand: function(token, aDecl, aAcceptPriority, aProperty)
   {
     var bWidth = null;
@@ -1362,6 +1476,13 @@ CSSParser.prototype = {
         if (token.isSymbol("}"))
           this.ungetToken();
         break;
+      }
+
+      else if (!bWidth && !bStyle && !bColor
+               && token.isIdent(this.kINHERIT)) {
+        bWidth = this.kINHERIT;
+        bStyle = this.kINHERIT;
+        bColor = this.kINHERIT;
       }
 
       else if (!bWidth &&
@@ -1433,6 +1554,15 @@ CSSParser.prototype = {
         if (token.isSymbol("}"))
           this.ungetToken();
         break;
+      }
+
+      else if (!bgColor && !bgRepeat && !bgAttachment && !bgImage && !bgPosition
+               && token.isIdent(this.kINHERIT)) {
+		    bgColor = this.kINHERIT;
+		    bgRepeat = this.kINHERIT;
+		    bgAttachment = this.kINHERIT;
+		    bgImage = this.kINHERIT;
+		    bgPosition = this.kINHERIT;
       }
 
       else {
@@ -1536,6 +1666,13 @@ CSSParser.prototype = {
         break;
       }
 
+      else if (!lType && !lPosition && ! lImage
+               && token.isIdent(this.kINHERIT)) {
+        lType = this.kINHERIT;
+        lPosition = this.kINHERIT;
+        lImage = this.kINHERIT;
+      }
+
       else if (!lType &&
                (token.isIdent() && token.value in this.kLIST_STYLE_TYPE_NAMES)) {
         lType = token.value;
@@ -1607,6 +1744,19 @@ CSSParser.prototype = {
         if (token.isSymbol("}"))
           this.ungetToken();
         break;
+      }
+
+      else if (!fStyle && !fVariant && !fWeight
+               && !fSize && !fLineHeight && !fFamily
+               && !fSystem
+               && token.isIdent(this.kINHERIT)) {
+		    fStyle = this.kINHERIT;
+		    fVariant = this.kINHERIT;
+		    fWeight = this.kINHERIT;
+		    fSize = this.kINHERIT;
+		    fLineHeight = this.kINHERIT;
+		    fFamily = this.kINHERIT;
+		    fSystem = this.kINHERIT;
       }
 
       else {

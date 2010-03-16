@@ -1,4 +1,4 @@
-- parse 'inherit' value for shorthands
+DONE parse 'inherit' value for shorthands and individual properties
 - parse escaped chars and unicode chars
 DONE parse 'list-style' and 'outline' shorthands
 - try to link to browser's CSS OM (not sure it's feasible)
@@ -6,3 +6,4 @@ DONE parse 'list-style' and 'outline' shorthands
 - keep track of individual values in declarations
 - interactive demo page
 - documentation and web site
+DONE forgot parsing of boder-style shorthand
