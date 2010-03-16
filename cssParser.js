@@ -302,17 +302,25 @@ CSSScanner.prototype = {
   parseString: function(aStop) {
     var s = aStop;
     var previousChar = aStop;
+    var c;
     while ((c = this.read()) != -1) {
       if (c == aStop && previousChar != CSS_ESCAPE) {
         s += c;
         break;
       }
       else if (c == CSS_ESCAPE) {
-        var c = this.peek();
+        c = this.peek();
         if (c == -1)
           break;
         else if (c == "\n" || c == "\r" || c == "\f") {
+          d = c;
           c = this.read();
+          // special for Opera that preserves \r\n...
+          if (d == "\r") {
+            c = this.peek();
+            if (c == "\n")
+              c = this.read();
+          }
         }
         else {
           s += this.gatherEscape();
