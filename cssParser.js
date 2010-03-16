@@ -1001,9 +1001,16 @@ CSSParser.prototype = {
         break;
       }
   
-      if (!value && token.isIdent(this.kINHERIT)) {
-        value += token.value;
-        break;
+      if (token.isIdent(this.kINHERIT)) {
+        token = this.getToken(true, true);
+        if (value) {
+          value = "";
+	        break;
+        }
+        else {
+          value += token.value;
+          break;
+        }
       }
       else if (token.isSymbol("{")
                  || token.isSymbol("(")
@@ -1058,12 +1065,10 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!top && !bottom && !left && !right
-               && token.isIdent(this.kINHERIT)) {
-        top = this.kINHERIT;
-        bottom = this.kINHERIT;
-        left = this.kINHERIT;
-        right = this.kINHERIT;
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
+        values.push(token.value);
+        token = this.getToken(true, true);
+        break;
       }
 
       else if (token.isDimension()
@@ -1136,11 +1141,10 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (this.isIdent(this.kINHERIT)) {
-        top = this.kINHERIT;
-        bottom = this.kINHERIT;
-        left = this.kINHERIT;
-        right = this.kINHERIT;
+      else if (!values.length && this.isIdent(this.kINHERIT)) {
+        values.push(token.value);
+        token = this.getToken(true, true);
+        break;
       }
       
       else {
@@ -1211,15 +1215,14 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!before && !after
-               && token.isIdent(this.kINHERIT)) {
-        before = this.kINHERIT;
-        after = this.kINHERIT;
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
+        values.push(token.value);
       }
 
       else if (token.isIdent("none"))
         values.push(token.value);
-      else if (token.isFunction("url(")) {
+
+        else if (token.isFunction("url(")) {
         var token = this.getToken(true, true);
         var urlContent = this.parseURL(token);
         if (urlContent)
@@ -1272,10 +1275,8 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!before && !after
-               && token.isIdent(this.kINHERIT)) {
-        before = this.kINHERIT;
-        after = this.kINHERIT;
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
+        values.push(token.value);
       }
 
       else if (token.isDimensionOfUnit("ms")
@@ -1329,12 +1330,8 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!top && !bottom && !left && !right
-               && token.isIdent(this.kINHERIT)) {
-        top = this.kINHERIT;
-        bottom = this.kINHERIT;
-        left = this.kINHERIT;
-        right = this.kINHERIT;
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
+        values.push(token.value);
       }
       
       else if (token.isDimension()
@@ -1406,12 +1403,8 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!top && !bottom && !left && !right
-               && token.isIdent(this.kINHERIT)) {
-        top = this.kINHERIT;
-        bottom = this.kINHERIT;
-        left = this.kINHERIT;
-        right = this.kINHERIT;
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
+        values.push(token.value);
       }
       
       else if (token.isIdent() && token.value in this.kBORDER_STYLE_NAMES) {
