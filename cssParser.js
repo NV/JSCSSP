@@ -1052,9 +1052,10 @@ CSSParser.prototype = {
   },
 
   parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor) {
-    var value = "";
+    var valueText = "";
     var blocks = [];
     var foundPriority = false;
+    var values = [];
     while (token.isNotNull()) {
 
       if ((token.isSymbol(";")
@@ -1067,24 +1068,22 @@ CSSParser.prototype = {
       }
   
       if (token.isIdent(this.kINHERIT)) {
-        if (value) {
-          value = "";
-	        break;
+        if (values.length) {
+          return "";
         }
         else {
-          value += this.kINHERIT;
+          valueText = this.kINHERIT;
+          values.push(this.kINHERIT);
           token = this.getToken(true, true);
           break;
         }
       }
       else if (token.isSymbol("{")
                  || token.isSymbol("(")
-                 || token.isSymbol("[")
-                 || token.isFunction()) {
-        blocks.push(token.isFunction() ? "(" : token.value);
+                 || token.isSymbol("[")) {
+        blocks.push(token.value);
       }
       else if (token.isSymbol("}")
-                 || token.isSymbol(")")
                  || token.isSymbol("]")) {
         if (blocks.length) {
           var ontop = blocks[blocks.length - 1];
@@ -1098,13 +1097,36 @@ CSSParser.prototype = {
       // XXX must find a better way to store individual values
       // probably a |values: []| field holding dimensions, percentages
       // functions, idents, numbers and symbols, in that order.
-      value += token.value;
+      if (token.isFunction()) {
+        var fn = token.value;
+        token = this.getToken(false, true);
+        var arg = this.parseFunctionArgument(token);
+        if (arg) {
+          valueText += fn + arg; 
+          values.push(fn + arg);
+        }
+        else
+          return "";
+      }
+      else if (token.isSymbol("#")) {
+        var color = this.parseColor(token);
+        if (color)
+          values.push(color);
+        else
+          return "";
+      }
+      else if (!token.isWhiteSpace() && !token.isSymbol(",")) {
+        values.push(token.value);
+        valueText += token.value;
+      }
+      else
+        valueText += token.value;
       token = this.getToken(false, true);
     }
-    if (value) {
+    if (values.length && valueText) {
       this.mScanner.forgetState();
-      aDecl.push(this._createJscsspDeclaration(descriptor, value));
-      return value;
+      aDecl.push(this._createJscsspDeclarationFromValuesArray(descriptor, values, valueText));
+      return valueText;
     }
     return "";
   },
@@ -1178,10 +1200,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration(aProperty + "-top", top));
-    aDecl.push(this._createJscsspDeclaration(aProperty + "-right", right));
-    aDecl.push(this._createJscsspDeclaration(aProperty + "-bottom", bottom));
-    aDecl.push(this._createJscsspDeclaration(aProperty + "-left", left));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-top", [top], top));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-right", [right], right));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-bottom", [bottom], bottom));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-left", [left], left));
    return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1253,10 +1275,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("border-top-color", top));
-    aDecl.push(this._createJscsspDeclaration("border-right-color", right));
-    aDecl.push(this._createJscsspDeclaration("border-bottom-color", bottom));
-    aDecl.push(this._createJscsspDeclaration("border-left-color", left));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-color", [top], top));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-color", [right], right));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-color", [bottom], bottom));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-color", [left], left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1315,8 +1337,8 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("cue-before", before));
-    aDecl.push(this._createJscsspDeclaration("cue-after", after));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("cue-before", [before], before));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("cue-after", [after], after));
     return before + " " + after;
   },
 
@@ -1369,8 +1391,8 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("pause-before", before));
-    aDecl.push(this._createJscsspDeclaration("pause-after", after));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("pause-before", [before], before));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("pause-after", [after], after));
     return before + " " + after;
   },
 
@@ -1440,10 +1462,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("border-top-width", top));
-    aDecl.push(this._createJscsspDeclaration("border-right-width", right));
-    aDecl.push(this._createJscsspDeclaration("border-bottom-width", bottom));
-    aDecl.push(this._createJscsspDeclaration("border-left-width", left));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-width", [top], top));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-width", [right], right));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-width", [bottom], bottom));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-width", [left], left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1511,10 +1533,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclaration("border-top-style", top));
-    aDecl.push(this._createJscsspDeclaration("border-right-style", right));
-    aDecl.push(this._createJscsspDeclaration("border-bottom-style", bottom));
-    aDecl.push(this._createJscsspDeclaration("border-left-style", left));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-style", [top], top));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-style", [right], right));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-style", [bottom], bottom));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-style", [left], left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1573,9 +1595,9 @@ CSSParser.prototype = {
     bColor = bColor ? bColor : "-moz-initial";
 
     function addPropertyToDecl(aSelf, aDecl, property, w, s, c) {
-      aDecl.push(aSelf._createJscsspDeclaration(property + "-width", w));
-      aDecl.push(aSelf._createJscsspDeclaration(property + "-style", s));
-      aDecl.push(aSelf._createJscsspDeclaration(property + "-color", c));
+      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-width", [w], w));
+      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-style", [s], s));
+      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-color", [c], c));
     }
 
     if (aProperty == "border") {
@@ -1695,11 +1717,11 @@ CSSParser.prototype = {
     bgAttachment = bgAttachment ? bgAttachment : "scroll";
     bgPosition = bgPosition ? bgPosition : "top left";
 
-    aDecl.push(this._createJscsspDeclaration("background-color", bgColor));
-    aDecl.push(this._createJscsspDeclaration("background-image", bgImage));
-    aDecl.push(this._createJscsspDeclaration("background-repeat", bgRepeat));
-    aDecl.push(this._createJscsspDeclaration("background-attachment", bgAttachment));
-    aDecl.push(this._createJscsspDeclaration("background-position", bgPosition));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-color", [bgColor], bgColor));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-image", [bgImage], bgImage));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-repeat", [bgRepeat], bgRepeat));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-attachment", [bgAttachment], bgAttachment));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-position", [bgPosition], bgPosition));
     return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
   },
 
@@ -1762,10 +1784,10 @@ CSSParser.prototype = {
     lImage = lImage ? lImage : "none";
     lPosition = lPosition ? lPosition : "outside";
 
-    aDecl.push(this._createJscsspDeclaration("list-style-type", lType));
-    aDecl.push(this._createJscsspDeclaration("list-style-position", lPosition));
-    aDecl.push(this._createJscsspDeclaration("list-style-image", lPosition));
-    return lType + " " + lPosition + " " + lPosition;
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-type", [lType], lType));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-position", [lPosition], lPosition));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-image", [lImage], lImage));
+    return lType + " " + lPosition + " " + lImage;
   },
 
   parseFontShorthand: function(token, aDecl, aAcceptPriority)
@@ -1789,6 +1811,7 @@ CSSParser.prototype = {
     var fLineHeight = null;
     var fFamily = "";
     var fSystem = null;
+    var fFamilyValues = [];
 
     var normalCount = 0;
     while (true) {
@@ -1881,10 +1904,12 @@ CSSParser.prototype = {
                 break;
               }
               else if (token.isIdent() && token.value in kFamily) {
+                fFamilyValues.push(token.value);
                 fFamily += token.value;
                 break;
               }
               else if (token.isString() || token.isIdent()) {
+                fFamilyValues.push(token.value);
                 fFamily += token.value;
                 lastWasComma = false;
               }
@@ -1911,7 +1936,7 @@ CSSParser.prototype = {
     // create the declarations
     this.mScanner.forgetState();
     if (fSystem) {
-      aDecl.push(this._createJscsspDeclaration("font", fSystem));
+      aDecl.push(this._createJscsspDeclarationFromValuesArray("font", [fSystem], fSystem));
       return fSystem;
     }
     fStyle = fStyle ? fStyle : "normal";
@@ -1921,12 +1946,12 @@ CSSParser.prototype = {
     fLineHeight = fLineHeight ? fLineHeight : "normal";
     fFamily = fFamily ? fFamily : "-moz-initial";
 
-    aDecl.push(this._createJscsspDeclaration("font-style", fStyle));
-    aDecl.push(this._createJscsspDeclaration("font-variant", fVariant));
-    aDecl.push(this._createJscsspDeclaration("font-weight", fWeight));
-    aDecl.push(this._createJscsspDeclaration("font-size", fSize));
-    aDecl.push(this._createJscsspDeclaration("line-height", fLineHeight));
-    aDecl.push(this._createJscsspDeclaration("font-family", fFamily));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-style", [fStyle], fStyle));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-variant", [fVariant], fVariant));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-weight", [fWeight], fWeight));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-size", [fSize], fSize));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("line-height", [fLineHeight], fLineHeight));
+    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-family", fFamilyValues, fFamily));
     return fStyle + " " + fVariant + " " + fWeight + " " + fSize + "/" + fLineHeight + " " + fFamily;
   },
 
@@ -1938,7 +1963,17 @@ CSSParser.prototype = {
     decl.parsedCssText = property + ": " + value + ";";
     return decl;
   },
-  
+
+  _createJscsspDeclarationFromValuesArray: function(property, values, valueText)
+  {
+    var decl = new jscsspDeclaration();
+    decl.property = property;
+    decl.values = values;
+    decl.valueText = valueText;
+    decl.parsedCssText = property + ": " + valueText + ";";
+    return decl;
+  },
+
   parseURL: function(token)
   {
     var value = "";
@@ -1960,6 +1995,31 @@ CSSParser.prototype = {
             break;
           }
         }
+        if (token.isSymbol(")")) {
+          break;
+        }
+        value += token.value;
+        token = this.getToken(false, false);
+      }
+
+    if (token.isSymbol(")"))
+      return value + ")";
+    return "";
+  },
+
+  parseFunctionArgument: function(token)
+  {
+    var value = "";
+    if (token.isString())
+    {
+      value += token.value;
+      token = this.getToken(true, true);
+    }
+    else
+      while (true)
+      {
+        if (!token.isNotNull())
+          return "";
         if (token.isSymbol(")")) {
           break;
         }
@@ -2930,15 +2990,23 @@ function jscsspDeclaration()
 {
   this.type = kJscsspSTYLE_DECLARATION;
   this.property = null;
-  this.value = null;
+  this.values = [];
+  this.valueText = null;
   this.priority = null;
   this.parsedCssText = null;
 }
 
 jscsspDeclaration.prototype = {
+  kCOMMA_SEPARATED: {
+    "cursor": true,
+    "font-family": true,
+    "voice-family": true
+  },
+
   get cssText() {
     return this.property + ": "
-                    + this.value
+                    + this.values.join(
+                         (this.property in this.kCOMMA_SEPARATED) ? ", " : " ")
                     + (this.priority ? " !important" : "")
                     + ";";
   },

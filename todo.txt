@@ -3,7 +3,7 @@ DONE parse escaped chars and unicode chars
 DONE parse 'list-style' and 'outline' shorthands
 - try to link to browser's CSS OM (not sure it's feasible)
 - serialization controls
-- keep track of individual values in declarations
+DONE keep track of individual values in declarations
 DONE - interactive demo page
 - documentation and web site
 DONE forgot parsing of boder-style shorthand
