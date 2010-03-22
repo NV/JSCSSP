@@ -25,6 +25,11 @@
       var parser = new CSSParser();
       var sheet = parser.parse(ss, false, true);
       if (sheet) {
+		    if (sheet) {
+          var medium = document.getElementById("medium").value;
+		      sheet.resolveVariables(medium);
+        }
+
 	      var serialization = document.getElementById("serialization");
 	      serialization.textContent = sheet.cssText;
       }
@@ -39,23 +44,34 @@
   <p>Warning, it's a work in progress. One detail though: no regexps for parsing inside...</p>
   <p>The current document has the following stylesheet attached:</p>
   <textarea style="margin: auto; width: 100%" rows="15" id="source">/* JSCSSP test */
-pre { background-color: #FFFFCC; 
-      /* shorthands */ border: 2px silver solid; padding: 1em;
-      /* at least one of the 2 following properties not recognized by your browser
-         but parsed and preserved by JSCSSP */
-      -moz-border-radius: 11px; -webkit-border-radius:11px
-    }
+@variables screen { myMargin: 10px }
+h1 {
+  margin-top: var(myMargin);
+  margin-right: var(myMargin);
+  -moz-border-radius-topright: var(myMargin);
+}
 
-body { font-family: sans-serif; margin: 1em }
-h1 { background-color: silver }
-h2 { background-color: lightgrey }
-h1, h2 { margin: 0px; padding: 4px }
+/* shorthands */
+#myP {
+  border: thin groove silver;
+}
 
 /* escapes */
-
 .f\00C4 oo { p\roperty: value; content: "foo \
 bar" }</textarea>
-  <p><button onclick="doit()">Parse and Reserialize below</button></p>
+  <p>
+    <button onclick="doit()">Parse and reserialize below, resolving CSS variables for this medium: </button>
+    <select id="medium">
+      <option>screen</option>
+      <option>print</option>
+      <option>braille</option>
+      <option>embossed</option>
+      <option>handheld</option>
+      <option>projection</option>
+      <option>speech</option>
+      <option>tty</option>
+      <option>tv</option>
+    </select></p>
   <p><a href="http://sources.disruptive-innovations.com/jscssp/">JSCSSP</a> is called to parse the
      stylesheet and here's how JSCSSP reserializes it:</p>
   <pre id="serialization"/>

@@ -827,18 +827,21 @@ CSSParser.prototype = {
   addUnknownRule: function(aSheet, aString) {
     var rule = new jscsspErrorRule();
     rule.parsedCssText = aString;
+    rule.parentStyleSheet = aSheet;
     aSheet.cssRules.push(rule);
   },
 
   addWhitespace: function(aSheet, aString) {
     var rule = new jscsspWhitespace();
     rule.parsedCssText = aString;
+    rule.parentStyleSheet = aSheet;
     aSheet.cssRules.push(rule);
   },
 
   addComment: function(aSheet, aString) {
     var rule = new jscsspComment();
     rule.parsedCssText = aString;
+    rule.parentStyleSheet = aSheet;
     aSheet.cssRules.push(rule);
   },
 
@@ -857,6 +860,7 @@ CSSParser.prototype = {
           var rule = new jscsspCharsetRule();
           rule.encoding = encoding;
           rule.parsedCssText = s;
+          rule.parentStyleSheet = aSheet;
           aSheet.cssRules.push(rule);
           return true;
         }
@@ -910,12 +914,81 @@ CSSParser.prototype = {
         rule.parsedCssText = s;
         rule.href = href;
         rule.media = media;
+        rule.parentStyleSheet = aSheet;
         aSheet.cssRules.push(rule);
         return true;
       }
     }
     this.mScanner.restoreState();
     this.addUnknownAtRule(aSheet, "@import");
+    return false;
+  },
+
+  parseVariablesRule: function(token, aSheet) {
+    var s = token.value;
+    var declarations = [];
+    var valid = false;
+    this.mScanner.preserveState();
+    token = this.getToken(true, true);
+    var media = [];
+    var foundMedia = false;
+    while (token.isNotNull()) {
+      if (token.isIdent()) {
+        foundMedia = true;
+        s += " " + token.value;
+        media.push(token.value);
+        token = this.getToken(true, true);
+        if (token.isSymbol(",")) {
+          s += ",";
+        } else {
+          if (token.isSymbol("{"))
+            this.ungetToken();
+          else {
+            // error...
+            token = null;
+            break;
+          }
+        }
+      } else if (token.isSymbol("{"))
+        break;
+      else if (foundMedia) {
+        token = null;
+        // not a media list
+        break;
+      }
+      token = this.getToken(true, true);
+    }
+
+    if (token.isSymbol("{")) {
+      s += " {";
+      token = this.getToken(true, true);
+      while (true) {
+        if (!token.isNotNull()) {
+          valid = true;
+          break;
+        }
+        if (token.isSymbol("}")) {
+          s += "}";
+          valid = true;
+          break;
+        } else {
+          var d = this.parseDeclaration(token, declarations, true, false, aSheet);
+          s += ((d && declarations.length) ? " " : "") + d;
+        }
+        token = this.getToken(true, false);
+      }
+    }
+    if (valid) {
+      this.mScanner.forgetState();
+      var rule = new jscsspVariablesRule();
+      rule.parsedCssText = s;
+      rule.declarations = declarations;
+      rule.media = media;
+      rule.parentStyleSheet = aSheet;
+      aSheet.cssRules.push(rule)
+      return true;
+    }
+    this.mScanner.restoreState();
     return false;
   },
 
@@ -958,6 +1031,7 @@ CSSParser.prototype = {
           rule.parsedCssText = s;
           rule.prefix = prefix;
           rule.url = url;
+          rule.parentStyleSheet = aSheet;
           aSheet.cssRules.push(rule);
           return true;
         }
@@ -986,7 +1060,7 @@ CSSParser.prototype = {
             valid = true;
             break;
           } else {
-            var d = this.parseDeclaration(token, descriptors, false);
+            var d = this.parseDeclaration(token, descriptors, false, false, aSheet);
             s += ((d && descriptors.length) ? " " : "") + d;
           }
           token = this.getToken(true, false);
@@ -998,6 +1072,7 @@ CSSParser.prototype = {
       var rule = new jscsspFontFaceRule();
       rule.parsedCssText = s;
       rule.descriptors = descriptors;
+      rule.parentStyleSheet = aSheet;
       aSheet.cssRules.push(rule)
       return true;
     }
@@ -1031,7 +1106,7 @@ CSSParser.prototype = {
             valid = true;
             break;
           } else {
-            var d = this.parseDeclaration(token, declarations, true);
+            var d = this.parseDeclaration(token, declarations, true, true, aSheet);
             s += ((d && declarations.length) ? " " : "") + d;
           }
           token = this.getToken(true, false);
@@ -1044,6 +1119,7 @@ CSSParser.prototype = {
       rule.parsedCssText = s;
       rule.pageSelector = pageSelector;
       rule.declarations = declarations;
+      rule.parentStyleSheet = aSheet;
       aSheet.cssRules.push(rule)
       return true;
     }
@@ -1051,7 +1127,7 @@ CSSParser.prototype = {
     return false;
   },
 
-  parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor) {
+  parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor, aSheet) {
     var valueText = "";
     var blocks = [];
     var foundPriority = false;
@@ -1073,7 +1149,8 @@ CSSParser.prototype = {
         }
         else {
           valueText = this.kINHERIT;
-          values.push(this.kINHERIT);
+          var value = new jscsspVariable(kJscsspINHERIT_VALUE, aSheet);
+          values.push(value);
           token = this.getToken(true, true);
           break;
         }
@@ -1098,25 +1175,52 @@ CSSParser.prototype = {
       // probably a |values: []| field holding dimensions, percentages
       // functions, idents, numbers and symbols, in that order.
       if (token.isFunction()) {
-        var fn = token.value;
-        token = this.getToken(false, true);
-        var arg = this.parseFunctionArgument(token);
-        if (arg) {
-          valueText += fn + arg; 
-          values.push(fn + arg);
+        if (token.isFunction("var(")) {
+          token = this.getToken(true, true);
+          if (token.isIdent()) {
+            var name = token.value;
+            token = this.getToken(true, true);
+            if (token.isSymbol(")")) {
+              var value = new jscsspVariable(kJscsspVARIABLE_VALUE, aSheet);
+              valueText += "var(" + name + ")";
+              value.name = name;
+              values.push(value);
+            }
+            else
+              return "";
+          }
+          else
+            return "";
+        }
+        else {
+	        var fn = token.value;
+	        token = this.getToken(false, true);
+	        var arg = this.parseFunctionArgument(token);
+	        if (arg) {
+	          valueText += fn + arg;
+	          var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, aSheet);
+	          value.value = valueText;
+	          values.push(value);
+	        }
+	        else
+	          return "";
+        }
+      }
+      else if (token.isSymbol("#")) {
+        var color = this.parseColor(token);
+        if (color) {
+          valueText += color;
+          var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, aSheet);
+          value.value = color;
+          values.push(value);
         }
         else
           return "";
       }
-      else if (token.isSymbol("#")) {
-        var color = this.parseColor(token);
-        if (color)
-          values.push(color);
-        else
-          return "";
-      }
       else if (!token.isWhiteSpace() && !token.isSymbol(",")) {
-        values.push(token.value);
+        var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, aSheet);
+        value.value = token.value;
+        values.push(value);
         valueText += token.value;
       }
       else
@@ -1200,10 +1304,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-top", [top], top));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-right", [right], right));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-bottom", [bottom], bottom));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray(aProperty + "-left", [left], left));
+    aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-top", top));
+    aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-right", right));
+    aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-bottom", bottom));
+    aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-left", left));
    return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1275,10 +1379,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-color", [top], top));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-color", [right], right));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-color", [bottom], bottom));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-color", [left], left));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-top-color", top));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-right-color", right));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-color", bottom));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-left-color", left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1337,8 +1441,8 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("cue-before", [before], before));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("cue-after", [after], after));
+    aDecl.push(this._createJscsspDeclarationFromValue("cue-before", before));
+    aDecl.push(this._createJscsspDeclarationFromValue("cue-after", after));
     return before + " " + after;
   },
 
@@ -1391,8 +1495,8 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("pause-before", [before], before));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("pause-after", [after], after));
+    aDecl.push(this._createJscsspDeclarationFromValue("pause-before", before));
+    aDecl.push(this._createJscsspDeclarationFromValue("pause-after", after));
     return before + " " + after;
   },
 
@@ -1462,10 +1566,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-width", [top], top));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-width", [right], right));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-width", [bottom], bottom));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-width", [left], left));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-top-width", top));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-right-width", right));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-width", bottom));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-left-width", left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1533,10 +1637,10 @@ CSSParser.prototype = {
         return "";
     }
     this.mScanner.forgetState();
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-top-style", [top], top));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-right-style", [right], right));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-bottom-style", [bottom], bottom));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("border-left-style", [left], left));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-top-style", top));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-right-style", right));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-style", bottom));
+    aDecl.push(this._createJscsspDeclarationFromValue("border-left-style", left));
     return top + " " + right + " " + bottom + " " + left;
   },
 
@@ -1595,9 +1699,9 @@ CSSParser.prototype = {
     bColor = bColor ? bColor : "-moz-initial";
 
     function addPropertyToDecl(aSelf, aDecl, property, w, s, c) {
-      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-width", [w], w));
-      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-style", [s], s));
-      aDecl.push(aSelf._createJscsspDeclarationFromValuesArray(property + "-color", [c], c));
+      aDecl.push(aSelf._createJscsspDeclarationFromValue(property + "-width", w));
+      aDecl.push(aSelf._createJscsspDeclarationFromValue(property + "-style", s));
+      aDecl.push(aSelf._createJscsspDeclarationFromValue(property + "-color", c));
     }
 
     if (aProperty == "border") {
@@ -1717,11 +1821,11 @@ CSSParser.prototype = {
     bgAttachment = bgAttachment ? bgAttachment : "scroll";
     bgPosition = bgPosition ? bgPosition : "top left";
 
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-color", [bgColor], bgColor));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-image", [bgImage], bgImage));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-repeat", [bgRepeat], bgRepeat));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-attachment", [bgAttachment], bgAttachment));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("background-position", [bgPosition], bgPosition));
+    aDecl.push(this._createJscsspDeclarationFromValue("background-color", bgColor));
+    aDecl.push(this._createJscsspDeclarationFromValue("background-image", bgImage));
+    aDecl.push(this._createJscsspDeclarationFromValue("background-repeat", bgRepeat));
+    aDecl.push(this._createJscsspDeclarationFromValue("background-attachment", bgAttachment));
+    aDecl.push(this._createJscsspDeclarationFromValue("background-position", bgPosition));
     return bgColor + " " + bgImage + " " + bgRepeat + " " + bgAttachment + " " + bgPosition;
   },
 
@@ -1784,9 +1888,9 @@ CSSParser.prototype = {
     lImage = lImage ? lImage : "none";
     lPosition = lPosition ? lPosition : "outside";
 
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-type", [lType], lType));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-position", [lPosition], lPosition));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("list-style-image", [lImage], lImage));
+    aDecl.push(this._createJscsspDeclarationFromValue("list-style-type", lType));
+    aDecl.push(this._createJscsspDeclarationFromValue("list-style-position", lPosition));
+    aDecl.push(this._createJscsspDeclarationFromValue("list-style-image", lImage));
     return lType + " " + lPosition + " " + lImage;
   },
 
@@ -1904,12 +2008,16 @@ CSSParser.prototype = {
                 break;
               }
               else if (token.isIdent() && token.value in kFamily) {
-                fFamilyValues.push(token.value);
+                var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, null);
+                value.value = token.value;
+                fFamilyValues.push(value);
                 fFamily += token.value;
                 break;
               }
               else if (token.isString() || token.isIdent()) {
-                fFamilyValues.push(token.value);
+                var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, null);
+                value.value = token.value;
+                fFamilyValues.push(value);
                 fFamily += token.value;
                 lastWasComma = false;
               }
@@ -1936,7 +2044,7 @@ CSSParser.prototype = {
     // create the declarations
     this.mScanner.forgetState();
     if (fSystem) {
-      aDecl.push(this._createJscsspDeclarationFromValuesArray("font", [fSystem], fSystem));
+      aDecl.push(this._createJscsspDeclarationFromValue("font", fSystem));
       return fSystem;
     }
     fStyle = fStyle ? fStyle : "normal";
@@ -1946,11 +2054,11 @@ CSSParser.prototype = {
     fLineHeight = fLineHeight ? fLineHeight : "normal";
     fFamily = fFamily ? fFamily : "-moz-initial";
 
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-style", [fStyle], fStyle));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-variant", [fVariant], fVariant));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-weight", [fWeight], fWeight));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("font-size", [fSize], fSize));
-    aDecl.push(this._createJscsspDeclarationFromValuesArray("line-height", [fLineHeight], fLineHeight));
+    aDecl.push(this._createJscsspDeclarationFromValue("font-style", fStyle));
+    aDecl.push(this._createJscsspDeclarationFromValue("font-variant", fVariant));
+    aDecl.push(this._createJscsspDeclarationFromValue("font-weight", fWeight));
+    aDecl.push(this._createJscsspDeclarationFromValue("font-size", fSize));
+    aDecl.push(this._createJscsspDeclarationFromValue("line-height", fLineHeight));
     aDecl.push(this._createJscsspDeclarationFromValuesArray("font-family", fFamilyValues, fFamily));
     return fStyle + " " + fVariant + " " + fWeight + " " + fSize + "/" + fLineHeight + " " + fFamily;
   },
@@ -1961,6 +2069,18 @@ CSSParser.prototype = {
     decl.property = property;
     decl.value = this.trim11(value);
     decl.parsedCssText = property + ": " + value + ";";
+    return decl;
+  },
+
+  _createJscsspDeclarationFromValue: function(property, valueText)
+  {
+    var decl = new jscsspDeclaration();
+    decl.property = property;
+    var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, null);
+    value.value = valueText;
+    decl.values = [value];
+    decl.valueText = valueText;
+    decl.parsedCssText = property + ": " + valueText + ";";
     return decl;
   },
 
@@ -2143,7 +2263,7 @@ CSSParser.prototype = {
     return color;
   },
 
-  parseDeclaration: function(aToken, aDecl, aAcceptPriority) {
+  parseDeclaration: function(aToken, aDecl, aAcceptPriority, aExpandShorthands, aSheet) {
     this.mScanner.preserveState();
     var blocks = [];
     if (aToken.isIdent()) {
@@ -2154,47 +2274,50 @@ CSSParser.prototype = {
 
         var value = "";
         var declarations = [];
-        switch (descriptor) {
-          case "background":
-            value = this.parseBackgroundShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "margin":
-          case "padding":
-            value = this.parseMarginOrPaddingShorthand(token, declarations, aAcceptPriority, descriptor);
-            break;
-          case "border-color":
-            value = this.parseBorderColorShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "border-style":
-            value = this.parseBorderStyleShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "border-width":
-            value = this.parseBorderWidthShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "border-top":
-          case "border-right":
-          case "border-bottom":
-          case "border-left":
-          case "border":
-          case "outline":
-            value = this.parseBorderEdgeOrOutlineShorthand(token, declarations, aAcceptPriority, descriptor);
-            break;
-          case "cue":
-            value = this.parseCueShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "pause":
-            value = this.parsePauseShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "font":
-            value = this.parseFontShorthand(token, declarations, aAcceptPriority);
-            break;
-          case "list-style":
-            value = this.parseListStyleShorthand(token, declarations, aAcceptPriority);
-            break;
-          default:
-            value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor);
-            break;
-        }
+        if (aExpandShorthands)
+	        switch (descriptor) {
+	          case "background":
+	            value = this.parseBackgroundShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "margin":
+	          case "padding":
+	            value = this.parseMarginOrPaddingShorthand(token, declarations, aAcceptPriority, descriptor);
+	            break;
+	          case "border-color":
+	            value = this.parseBorderColorShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-style":
+	            value = this.parseBorderStyleShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-width":
+	            value = this.parseBorderWidthShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-top":
+	          case "border-right":
+	          case "border-bottom":
+	          case "border-left":
+	          case "border":
+	          case "outline":
+	            value = this.parseBorderEdgeOrOutlineShorthand(token, declarations, aAcceptPriority, descriptor);
+	            break;
+	          case "cue":
+	            value = this.parseCueShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "pause":
+	            value = this.parsePauseShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "font":
+	            value = this.parseFontShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "list-style":
+	            value = this.parseListStyleShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          default:
+	            value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
+	            break;
+	        }
+        else
+          value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
         token = this.currentToken;
         if (value) // no error above
         {
@@ -2312,7 +2435,7 @@ CSSParser.prototype = {
           valid = true;
           break;
         } else {
-          var r = this.parseStyleRule(token, mediaRule);
+          var r = this.parseStyleRule(token, mediaRule, true);
           if (r)
             s += r;
         }
@@ -2340,7 +2463,8 @@ CSSParser.prototype = {
     return str;
   },
 
-  parseStyleRule: function(aToken, aCssRules) {
+  parseStyleRule: function(aToken, aOwner, aIsInsideMediaRule)
+  {
     // first let's see if we have a selector here...
     var selector = this.parseSelector(aToken, false);
     var valid = false;
@@ -2362,7 +2486,7 @@ CSSParser.prototype = {
             valid = true;
             break;
           } else {
-            var d = this.parseDeclaration(token, declarations, true);
+            var d = this.parseDeclaration(token, declarations, true, true, aOwner);
             s += ((d && declarations.length) ? " " : "") + d;
           }
           token = this.getToken(true, false);
@@ -2374,7 +2498,11 @@ CSSParser.prototype = {
       rule.parsedCssText = s;
       rule.declarations = declarations;
       rule.mSelectorText = selector;
-      aCssRules.cssRules.push(rule);
+      if (aIsInsideMediaRule)
+        rule.parentRule = aOwner;
+      else
+        rule.parentStyleSheet = aOwner;
+      aOwner.cssRules.push(rule);
       return s;
     }
     return "";
@@ -2615,14 +2743,21 @@ CSSParser.prototype = {
       }
 
       else if (token.isAtRule()) {
-        if (token.isAtRule("@import")) {
+        if (token.isAtRule("@variables")) {
+          if (!foundImportRules && !foundStyleRules)
+            this.parseVariablesRule(token, sheet);
+          else
+            this.addUnknownAtRule(sheet, token.value);
+        }
+        else if (token.isAtRule("@import")) {
           // @import rules MUST occur before all style and namespace
           // rules
           if (!foundStyleRules && !foundNameSpaceRules)
             foundImportRules = this.parseImportRule(token, sheet);
           else
             this.addUnknownAtRule(sheet, token.value);
-        } else if (token.isAtRule("@namespace")) {
+        }
+        else if (token.isAtRule("@namespace")) {
           // @namespace rules MUST occur before all style rule and
           // after all @import rules
           if (!foundStyleRules)
@@ -2630,27 +2765,32 @@ CSSParser.prototype = {
                 sheet);
           else
             this.addUnknownAtRule(sheet, token.value);
-        } else if (token.isAtRule("@font-face")) {
+        }
+        else if (token.isAtRule("@font-face")) {
           if (this.parseFontFaceRule(token, sheet))
             foundStyleRules = true;
           else
             this.addUnknownAtRule(sheet, token.value);
-        } else if (token.isAtRule("@page")) {
+        }
+        else if (token.isAtRule("@page")) {
           if (this.parsePageRule(token, sheet))
             foundStyleRules = true;
           else
             this.addUnknownAtRule(sheet, token.value);
-        } else if (token.isAtRule("@media")) {
+        }
+        else if (token.isAtRule("@media")) {
           if (this.parseMediaRule(token, sheet))
             foundStyleRules = true;
           else
             this.addUnknownAtRule(sheet, token.value);
         }
+        else
+          this.addUnknownAtRule(sheet, token.value);
       }
 
       else // plain style rules
       {
-        this.parseStyleRule(token, sheet);
+        this.parseStyleRule(token, sheet, false);
         foundStyleRules = true;
       }
       token = this.getToken(false);
@@ -2798,6 +2938,7 @@ const kJscsspIMPORT_RULE    = 3;
 const kJscsspMEDIA_RULE     = 4;
 const kJscsspFONT_FACE_RULE = 5;
 const kJscsspPAGE_RULE      = 6;
+const kJscsspVARIABLES_RULE = 7;
 
 const kJscsspNAMESPACE_RULE = 100;
 const kJscsspCOMMENT        = 101;
@@ -2810,6 +2951,7 @@ var gTABS = "";
 function jscsspStylesheet()
 {
   this.cssRules = [];
+  this.variables = {};
 }
 
 jscsspStylesheet.prototype = {
@@ -2836,6 +2978,24 @@ jscsspStylesheet.prototype = {
     for (var i = 0; i < this.cssRules.length; i++)
       rv += this.cssRules[i].cssText + "\n";
     return rv;
+  },
+
+  resolveVariables: function(aMedium) {
+    for (var i = 0; i < this.cssRules.length; i++)
+    {
+      var rule = this.cssRules[i];
+      if (rule.type == kJscsspSTYLE_RULE || rule.type == kJscsspIMPORT_RULE)
+        break;
+      else if (rule.type == kJscsspVARIABLES_RULE &&
+               (!rule.media.length || rule.media.indexOf(aMedium) != -1)) {
+        for (var j = 0; j < rule.declarations.length; j++) {
+          var valueText = "";
+          for (var k = 0; k < rule.declarations[j].values.length; k++)
+            valueText += (k ? " " : "") + rule.declarations[j].values[k].value;
+          this.variables[rule.declarations[j].property] = valueText;
+        }
+      }
+    }
   }
 };
 
@@ -2846,6 +3006,8 @@ function jscsspCharsetRule()
   this.type = kJscsspCHARSET_RULE;
   this.encoding = null;
   this.parsedCssText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspCharsetRule.prototype = {
@@ -2876,6 +3038,8 @@ function jscsspErrorRule()
 {
   this.type = kJscsspUNKNOWN_RULE;
   this.parsedCssText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspErrorRule.prototype = {
@@ -2890,6 +3054,8 @@ function jscsspComment()
 {
   this.type = kJscsspCOMMENT;
   this.parsedCssText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspComment.prototype = {
@@ -2913,6 +3079,8 @@ function jscsspWhitespace()
 {
   this.type = kJscsspWHITE_SPACE;
   this.parsedCssText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 /* kJscsspIMPORT_RULE */
@@ -2923,6 +3091,8 @@ function jscsspImportRule()
   this.parsedCssText = null;
   this.href = null;
   this.media = []; 
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspImportRule.prototype = {
@@ -2958,6 +3128,8 @@ function jscsspNamespaceRule()
   this.parsedCssText = null;
   this.prefix = null;
   this.url = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspNamespaceRule.prototype = {
@@ -2994,6 +3166,8 @@ function jscsspDeclaration()
   this.valueText = null;
   this.priority = null;
   this.parsedCssText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspDeclaration.prototype = {
@@ -3004,18 +3178,21 @@ jscsspDeclaration.prototype = {
   },
 
   get cssText() {
-    return this.property + ": "
-                    + this.values.join(
-                         (this.property in this.kCOMMA_SEPARATED) ? ", " : " ")
-                    + (this.priority ? " !important" : "")
-                    + ";";
+    var rv = this.property + ": ";
+    var separator = (this.property in this.kCOMMA_SEPARATED) ? ", " : " ";
+    for (var i = 0; i < this.values.length; i++)
+      if (this.values[i].cssText != null)
+        rv += (i ? separator : "") + this.values[i].cssText;
+      else
+        return null;
+    return rv + (this.priority ? " !important" : "") + ";";
   },
 
   set cssText(val) {
     var declarations = [];
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
-    if (parser.parseDeclaration(token, declarations, true)
+    if (parser.parseDeclaration(token, declarations, true, true, null)
         && declarations.length
         && declarations[0].type == kJscsspSTYLE_DECLARATION) {
       var newDecl = declarations.cssRules[0];
@@ -3036,6 +3213,8 @@ function jscsspFontFaceRule()
   this.type = kJscsspFONT_FACE_RULE;
   this.parsedCssText = null;
   this.descriptors = [];
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspFontFaceRule.prototype = {
@@ -3073,6 +3252,8 @@ function jscsspMediaRule()
   this.parsedCssText = null;
   this.cssRules = [];
   this.media = [];
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspMediaRule.prototype = {
@@ -3111,6 +3292,8 @@ function jscsspStyleRule()
   this.parsedCssText = null;
   this.declarations = []
   this.mSelectorText = null;
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspStyleRule.prototype = {
@@ -3118,8 +3301,11 @@ jscsspStyleRule.prototype = {
     var rv = this.mSelectorText + " {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
-    for (var i = 0; i < this.declarations.length; i++)
-      rv += gTABS + this.declarations[i].cssText + "\n";
+    for (var i = 0; i < this.declarations.length; i++) {
+      var declText = this.declarations[i].cssText;
+      if (declText)
+        rv += gTABS + this.declarations[i].cssText + "\n";
+    }
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
@@ -3129,7 +3315,7 @@ jscsspStyleRule.prototype = {
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
-      if (parser.parseStyleRule(token, sheet)) {
+      if (parser.parseStyleRule(token, sheet, false)) {
         var newRule = sheet.cssRules[0];
         this.mSelectorText = newRule.mSelectorText;
         this.declarations = newRule.declarations;
@@ -3166,6 +3352,8 @@ function jscsspPageRule()
   this.parsedCssText = null;
   this.pageSelector = null;
   this.declarations = [];
+  this.parentStyleSheet = null;
+  this.parentRule = null;
 }
 
 jscsspPageRule.prototype = {
@@ -3197,3 +3385,79 @@ jscsspPageRule.prototype = {
   }
 };
 
+/* kJscsspVARIABLES_RULE */
+
+function jscsspVariablesRule()
+{
+  this.type = kJscsspVARIABLES_RULE;
+  this.parsedCssText = null;
+  this.declarations = [];
+  this.parentStyleSheet = null;
+  this.parentRule = null;
+  this.media = null;
+}
+
+jscsspVariablesRule.prototype = {
+  get cssText() {
+    var rv = gTABS + "@variables " +
+                     (this.media.length ? this.media.join(", ") + " " : "") +
+                     "{\n";
+    var preservedGTABS = gTABS;
+    gTABS += "  ";
+    for (var i = 0; i < this.declarations.length; i++)
+      rv += gTABS + this.declarations[i].cssText + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  set cssText(val) {
+    var sheet = {cssRules: []};
+    var parser = new CSSParser(val);
+    var token = parser.getToken(true, true);
+    if (token.isAtRule("@variables")) {
+      if (parser.parseVariablesRule(token, sheet)) {
+        var newRule = sheet.cssRules[0];
+        this.declarations = newRule.declarations;
+        this.parsedCssText = newRule.parsedCssText;
+        return;
+      }
+    }
+    throw DOMException.SYNTAX_ERR;
+  }
+};
+
+const kJscsspINHERIT_VALUE = 0;
+const kJscsspPRIMITIVE_VALUE = 1;
+const kJscsspVARIABLE_VALUE = 4;
+
+function jscsspVariable(aType, aSheet)
+{
+  this.value = "";
+  this.type = aType;
+  this.name  = null;
+  this.parentRule = null;
+  this.parentStyleSheet = aSheet;
+}
+
+jscsspVariable.prototype = {
+  get cssText() {
+    if (this.type == kJscsspVARIABLE_VALUE)
+      return this.resolveVariable(this.name, this.parentRule, this.parentStyleSheet);
+    else
+      return this.value;
+  },
+
+  set cssText(val) {
+    if (this.type == kJscsspVARIABLE_VALUE)
+      throw DOMException.SYNTAX_ERR;
+    else
+      this.value = val;
+  },
+
+  resolveVariable: function(aName, aRule, aSheet)
+  {
+    if (aName.toLowerCase() in aSheet.variables)
+      return aSheet.variables[aName.toLowerCase()];
+    return null;
+  }
+};
