@@ -44,19 +44,19 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const CSS_ESCAPE  = '\\';
+var CSS_ESCAPE  = '\\';
 
-const IS_HEX_DIGIT  = 1;
-const START_IDENT   = 2;
-const IS_IDENT      = 4;
-const IS_WHITESPACE = 8;
+var IS_HEX_DIGIT  = 1;
+var START_IDENT   = 2;
+var IS_IDENT      = 4;
+var IS_WHITESPACE = 8;
 
-const W   = IS_WHITESPACE;
-const I   = IS_IDENT;
-const S   =          START_IDENT;
-const SI  = IS_IDENT|START_IDENT;
-const XI  = IS_IDENT            |IS_HEX_DIGIT;
-const XSI = IS_IDENT|START_IDENT|IS_HEX_DIGIT;
+var W   = IS_WHITESPACE;
+var I   = IS_IDENT;
+var S   =          START_IDENT;
+var SI  = IS_IDENT|START_IDENT;
+var XI  = IS_IDENT            |IS_HEX_DIGIT;
+var XSI = IS_IDENT|START_IDENT|IS_HEX_DIGIT;
 
 function CSSScanner(aString)
 {
@@ -137,13 +137,13 @@ CSSScanner.prototype = {
 
   read: function() {
     if (this.mPos < this.mString.length)
-      return this.mString[this.mPos++];
+      return this.mString.charAt(this.mPos++);
     return -1;
   },
 
   peek: function() {
     if (this.mPos < this.mString.length)
-      return this.mString[this.mPos];
+      return this.mString.charAt(this.mPos);
     return -1;
   },
 
@@ -754,7 +754,7 @@ CSSParser.prototype = {
     "parenthesised-lower-latin": true
   },
 
-  get currentToken() {
+  currentToken: function() {
     return this.mToken;
   },
 
@@ -1717,9 +1717,9 @@ CSSParser.prototype = {
 
   parseBackgroundShorthand: function(token, aDecl, aAcceptPriority)
   {
-    const kHPos = {"left": true, "right": true };
-    const kVPos = {"top": true, "bottom": true };
-    const kPos = {"left": true, "right": true, "top": true, "bottom": true, "center": true};
+    var kHPos = {"left": true, "right": true };
+    var kVPos = {"top": true, "bottom": true };
+    var kPos = {"left": true, "right": true, "top": true, "bottom": true, "center": true};
 
     var bgColor = null;
     var bgRepeat = null;
@@ -1831,7 +1831,7 @@ CSSParser.prototype = {
 
   parseListStyleShorthand: function(token, aDecl, aAcceptPriority)
   {
-    const kPosition = { "inside": true, "outside": true };
+    var kPosition = { "inside": true, "outside": true };
 
     var lType = null;
     var lPosition = null;
@@ -1896,17 +1896,17 @@ CSSParser.prototype = {
 
   parseFontShorthand: function(token, aDecl, aAcceptPriority)
   {
-    const kStyle = {"italic": true, "oblique": true };
-    const kVariant = {"small-caps": true };
-    const kWeight = { "bold": true, "bolder": true, "lighter": true,
+    var kStyle = {"italic": true, "oblique": true };
+    var kVariant = {"small-caps": true };
+    var kWeight = { "bold": true, "bolder": true, "lighter": true,
                       "100": true, "200": true, "300": true, "400": true,
                       "500": true, "600": true, "700": true, "800": true,
                       "900": true };
-    const kSize = { "xx-small": true, "x-small": true, "small": true, "medium": true,
+    var kSize = { "xx-small": true, "x-small": true, "small": true, "medium": true,
                     "large": true, "x-large": true, "xx-large": true,
                     "larger": true, "smaller": true };
-    const kValues = { "caption": true, "icon": true, "menu": true, "message-box": true, "small-caption": true, "status-bar": true };
-    const kFamily = { "serif": true, "sans-serif": true, "cursive": true, "fantasy": true, "monospace": true };
+    var kValues = { "caption": true, "icon": true, "menu": true, "message-box": true, "small-caption": true, "status-bar": true };
+    var kFamily = { "serif": true, "sans-serif": true, "cursive": true, "fantasy": true, "monospace": true };
 
     var fStyle = null;
     var fVariant = null;
@@ -2111,7 +2111,7 @@ CSSParser.prototype = {
           nextToken = this.lookAhead(true, true);
           // if next token is not a closing parenthesis, that's an error
           if (!nextToken.isSymbol(")")) {
-            token = this.currentToken;
+            token = this.currentToken();
             break;
           }
         }
@@ -2318,7 +2318,7 @@ CSSParser.prototype = {
 	        }
         else
           value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
-        token = this.currentToken;
+        token = this.currentToken();
         if (value) // no error above
         {
           var priority = false;
@@ -2455,7 +2455,7 @@ CSSParser.prototype = {
   trim11: function(str) {
     str = str.replace(/^\s+/, '');
     for (var i = str.length - 1; i >= 0; i--) {
-      if (/\S/.test(str.charAt(i))) {
+      if (/\S/.test( str.charAt(i) )) { // XXX charat
         str = str.substring(0, i + 1);
         break;
       }
@@ -2931,20 +2931,20 @@ jscsspToken.prototype = {
   }
 }
 
-const kJscsspUNKNOWN_RULE   = 0;
-const kJscsspSTYLE_RULE     = 1
-const kJscsspCHARSET_RULE   = 2;
-const kJscsspIMPORT_RULE    = 3;
-const kJscsspMEDIA_RULE     = 4;
-const kJscsspFONT_FACE_RULE = 5;
-const kJscsspPAGE_RULE      = 6;
-const kJscsspVARIABLES_RULE = 7;
+var kJscsspUNKNOWN_RULE   = 0;
+var kJscsspSTYLE_RULE     = 1
+var kJscsspCHARSET_RULE   = 2;
+var kJscsspIMPORT_RULE    = 3;
+var kJscsspMEDIA_RULE     = 4;
+var kJscsspFONT_FACE_RULE = 5;
+var kJscsspPAGE_RULE      = 6;
+var kJscsspVARIABLES_RULE = 7;
 
-const kJscsspNAMESPACE_RULE = 100;
-const kJscsspCOMMENT        = 101;
-const kJscsspWHITE_SPACE    = 102;
+var kJscsspNAMESPACE_RULE = 100;
+var kJscsspCOMMENT        = 101;
+var kJscsspWHITE_SPACE    = 102;
 
-const kJscsspSTYLE_DECLARATION = 1000;
+var kJscsspSTYLE_DECLARATION = 1000;
 
 var gTABS = "";
 
@@ -2973,21 +2973,30 @@ jscsspStylesheet.prototype = {
     }
   },
 
-  get cssText() {
+  cssText: function() {
     var rv = "";
     for (var i = 0; i < this.cssRules.length; i++)
-      rv += this.cssRules[i].cssText + "\n";
+      rv += this.cssRules[i].cssText() + "\n";
     return rv;
   },
 
   resolveVariables: function(aMedium) {
+
+    function ItemFoundInArray(aArray, aItem) {
+      for (var i = 0; i < aArray.length; i++)
+        if (aItem == aArray[i])
+          return true;
+      return false;
+    }
+    
     for (var i = 0; i < this.cssRules.length; i++)
     {
       var rule = this.cssRules[i];
       if (rule.type == kJscsspSTYLE_RULE || rule.type == kJscsspIMPORT_RULE)
         break;
       else if (rule.type == kJscsspVARIABLES_RULE &&
-               (!rule.media.length || rule.media.indexOf(aMedium) != -1)) {
+               (!rule.media.length || ItemFoundInArray(rule.media, aMedium))) {
+        
         for (var j = 0; j < rule.declarations.length; j++) {
           var valueText = "";
           for (var k = 0; k < rule.declarations[j].values.length; k++)
@@ -3012,11 +3021,11 @@ function jscsspCharsetRule()
 
 jscsspCharsetRule.prototype = {
 
-  get cssText() {
+  cssText: function() {
     return "@charset " + this.encoding + ";";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(false, false);
@@ -3043,7 +3052,7 @@ function jscsspErrorRule()
 }
 
 jscsspErrorRule.prototype = {
-  get cssText() {
+  cssText: function() {
     return this.parsedCssText;
   }
 };
@@ -3059,11 +3068,11 @@ function jscsspComment()
 }
 
 jscsspComment.prototype = {
-  get cssText() {
+  cssText: function() {
     return this.parsedCssText;
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var parser = new CSSParser(val);
     var token = parser.getToken(true, false);
     if (token.isComment())
@@ -3096,14 +3105,14 @@ function jscsspImportRule()
 }
 
 jscsspImportRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var mediaString = this.media.join(", ");
     return "@import " + (mediaString ? mediaString + " " : "")
                       + this.href
                       + ";";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3133,13 +3142,13 @@ function jscsspNamespaceRule()
 }
 
 jscsspNamespaceRule.prototype = {
-  get cssText() {
+  cssText: function() {
     return "@namespace" + (this.prefix ? this.prefix + " ": "")
                         + this.url
                         + ";";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3177,18 +3186,18 @@ jscsspDeclaration.prototype = {
     "voice-family": true
   },
 
-  get cssText() {
+  cssText: function() {
     var rv = this.property + ": ";
     var separator = (this.property in this.kCOMMA_SEPARATED) ? ", " : " ";
     for (var i = 0; i < this.values.length; i++)
-      if (this.values[i].cssText != null)
-        rv += (i ? separator : "") + this.values[i].cssText;
+      if (this.values[i].cssText() != null)
+        rv += (i ? separator : "") + this.values[i].cssText();
       else
         return null;
     return rv + (this.priority ? " !important" : "") + ";";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var declarations = [];
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3218,17 +3227,17 @@ function jscsspFontFaceRule()
 }
 
 jscsspFontFaceRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var rv = gTABS + "@font-face {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.descriptors.length; i++)
-      rv += gTABS + this.descriptors[i].cssText + "\n";
+      rv += gTABS + this.descriptors[i].cssText() + "\n";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3257,17 +3266,17 @@ function jscsspMediaRule()
 }
 
 jscsspMediaRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var rv = gTABS + "@media " + this.media.join(", ") + " {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.cssRules.length; i++)
-      rv += gTABS + this.cssRules[i].cssText + "\n";
+      rv += gTABS + this.cssRules[i].cssText() + "\n";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3297,20 +3306,20 @@ function jscsspStyleRule()
 }
 
 jscsspStyleRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var rv = this.mSelectorText + " {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++) {
-      var declText = this.declarations[i].cssText;
+      var declText = this.declarations[i].cssText();
       if (declText)
-        rv += gTABS + this.declarations[i].cssText + "\n";
+        rv += gTABS + this.declarations[i].cssText() + "\n";
     }
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3326,11 +3335,11 @@ jscsspStyleRule.prototype = {
     throw DOMException.SYNTAX_ERR;
   },
 
-  get selectorText() {
+  selectorText: function() {
     return this.mSelectorText;
   },
 
-  set selectorText(val) {
+  setSelectorText: function(val) {
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
     if (!token.isNotNull()) {
@@ -3357,18 +3366,18 @@ function jscsspPageRule()
 }
 
 jscsspPageRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var rv = gTABS + "@page " + (this.mediaSelector ? this.mediaSelector : "")
                    + " {\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++)
-      rv += gTABS + this.declarations[i].cssText + "\n";
+      rv += gTABS + this.declarations[i].cssText() + "\n";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3398,19 +3407,19 @@ function jscsspVariablesRule()
 }
 
 jscsspVariablesRule.prototype = {
-  get cssText() {
+  cssText: function() {
     var rv = gTABS + "@variables " +
                      (this.media.length ? this.media.join(", ") + " " : "") +
                      "{\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++)
-      rv += gTABS + this.declarations[i].cssText + "\n";
+      rv += gTABS + this.declarations[i].cssText() + "\n";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
     var token = parser.getToken(true, true);
@@ -3426,9 +3435,9 @@ jscsspVariablesRule.prototype = {
   }
 };
 
-const kJscsspINHERIT_VALUE = 0;
-const kJscsspPRIMITIVE_VALUE = 1;
-const kJscsspVARIABLE_VALUE = 4;
+var kJscsspINHERIT_VALUE = 0;
+var kJscsspPRIMITIVE_VALUE = 1;
+var kJscsspVARIABLE_VALUE = 4;
 
 function jscsspVariable(aType, aSheet)
 {
@@ -3440,14 +3449,14 @@ function jscsspVariable(aType, aSheet)
 }
 
 jscsspVariable.prototype = {
-  get cssText() {
+  cssText: function() {
     if (this.type == kJscsspVARIABLE_VALUE)
       return this.resolveVariable(this.name, this.parentRule, this.parentStyleSheet);
     else
       return this.value;
   },
 
-  set cssText(val) {
+  setCssText: function(val) {
     if (this.type == kJscsspVARIABLE_VALUE)
       throw DOMException.SYNTAX_ERR;
     else
