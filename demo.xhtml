@@ -1,79 +1,29 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head><meta content="text/html; charset=ISO-8859-1" http-equiv="content-type" />
-  <title>Demo of JSCSSP, a CSS parser in JavaScript</title>
-
-  <style type="text/css">@charset 'iso-8859-1';
-		pre {
-		  background-color: #FFFFCC;
-		  border: 2px silver solid;
-		  padding: 1em;
-		  -moz-border-radius: 11px;
-		  -webkit-border-radius:11px
-		}
-		body { font-family: sans-serif; margin: 1em }
-		h1 { background-color: silver }
-		h2 { background-color: lightgrey }
-		h1, h2 { margin: 0px; padding: 4px }}
-	</style>
-  <script type="application/x-javascript"  src="cssParser.js"></script>
-  <script type="application/x-javascript">
-    function doit() {
-      var source = document.getElementById("source");
-      ss = source.value;
-
-      var parser = new CSSParser();
-      var sheet = parser.parse(ss, false, true);
-      if (sheet) {
-		    if (sheet) {
-          var medium = document.getElementById("medium").value;
-		      sheet.resolveVariables(medium);
-        }
-
-	      var serialization = document.getElementById("serialization");
-	      serialization.textContent = sheet.cssText;
-      }
-      else
-        serialization.textContent = "";
-  }
-  </script>
+<head>
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1" />
+  <title>Demo of JSCSSP, a CSS
+parser in JavaScript</title>
+  <style type="text/css">
+pre {
+background-color: #FFFFCC;
+border: 2px silver solid;
+padding: 1em;
+-moz-border-radius: 11px;
+-webkit-border-radius:11px
+}
+body { font-family: sans-serif; margin: 1em }
+h1 { background-color: silver }
+h2 { background-color: lightgrey }
+h1, h2 { margin: 0px; padding: 4px }}
+  </style>
 </head>
 <body>
-  <h1>JSCSSP, a CSS parser in JavaScript</h1>
-  <h2>Author: <a href="http://glazman.org/weblog">Daniel Glazman</a></h2>
-  <p>Warning, it's a work in progress. One detail though: no regexps for parsing inside...</p>
-  <p>The current document has the following stylesheet attached:</p>
-  <textarea style="margin: auto; width: 100%" rows="15" id="source">/* JSCSSP test */
-@variables screen { myMargin: 10px }
-h1 {
-  margin-top: var(myMargin);
-  margin-right: var(myMargin);
-  -moz-border-radius-topright: var(myMargin);
-}
-
-/* shorthands */
-#myP {
-  border: thin groove silver;
-}
-
-/* escapes */
-.f\00C4 oo { p\roperty: value; content: "foo \
-bar" }</textarea>
-  <p>
-    <button onclick="doit()">Parse and reserialize below, resolving CSS variables for this medium: </button>
-    <select id="medium">
-      <option>screen</option>
-      <option>print</option>
-      <option>braille</option>
-      <option>embossed</option>
-      <option>handheld</option>
-      <option>projection</option>
-      <option>speech</option>
-      <option>tty</option>
-      <option>tv</option>
-    </select></p>
-  <p><a href="http://sources.disruptive-innovations.com/jscssp/">JSCSSP</a> is called to parse the
-     stylesheet and here's how JSCSSP reserializes it:</p>
-  <pre id="serialization"/>
+<h1>JSCSSP, a CSS parser in
+JavaScript</h1>
+<h2>Author: <a href="http://glazman.org/weblog">Daniel Glazman</a></h2>
+<p>The demo has moved. Please visit <a
+ href="http://glazman.org/JSCSSP/">http://glazman.org/JSCSSP/</a>.</p>
 </body>
 </html>
