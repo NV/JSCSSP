@@ -432,6 +432,8 @@ function CSSParser(aString)
 
   this.mPreserveWS = true;
   this.mPreserveComments = true;
+
+  this.mPreservedTokens = [];
 }
 
 CSSParser.prototype = {
@@ -813,7 +815,7 @@ CSSParser.prototype = {
               || (token.isSymbol(")") && ontop == "(")
               || (token.isSymbol("]") && ontop == "[")) {
             blocks.pop();
-            if (!blocks.length)
+            if (!blocks.length && token.isSymbol("}"))
               break;
           }
         }
@@ -873,7 +875,7 @@ CSSParser.prototype = {
 
   parseImportRule: function(aToken, aSheet) {
     var s = aToken.value;
-    this.mScanner.preserveState();
+    this.preserveState();
     var token = this.getToken(true, true);
     var media = [];
     var href = "";
@@ -909,7 +911,7 @@ CSSParser.prototype = {
   
       if (token.isSymbol(";") && href && media.length) {
         s += ";"
-        this.mScanner.forgetState();
+        this.forgetState();
         var rule = new jscsspImportRule();
         rule.parsedCssText = s;
         rule.href = href;
@@ -919,7 +921,7 @@ CSSParser.prototype = {
         return true;
       }
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     this.addUnknownAtRule(aSheet, "@import");
     return false;
   },
@@ -928,7 +930,7 @@ CSSParser.prototype = {
     var s = token.value;
     var declarations = [];
     var valid = false;
-    this.mScanner.preserveState();
+    this.preserveState();
     token = this.getToken(true, true);
     var media = [];
     var foundMedia = false;
@@ -945,14 +947,14 @@ CSSParser.prototype = {
             this.ungetToken();
           else {
             // error...
-            token = null;
+            token.type = jscsspToken.NULL_TYPE;
             break;
           }
         }
       } else if (token.isSymbol("{"))
         break;
       else if (foundMedia) {
-        token = null;
+        token.type = jscsspToken.NULL_TYPE;
         // not a media list
         break;
       }
@@ -979,7 +981,7 @@ CSSParser.prototype = {
       }
     }
     if (valid) {
-      this.mScanner.forgetState();
+      this.forgetState();
       var rule = new jscsspVariablesRule();
       rule.parsedCssText = s;
       rule.declarations = declarations;
@@ -988,14 +990,14 @@ CSSParser.prototype = {
       aSheet.cssRules.push(rule)
       return true;
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     return false;
   },
 
   parseNamespaceRule: function(aToken, aSheet) {
     var s = aToken.value;
     var valid = false;
-    this.mScanner.preserveState();
+    this.preserveState();
     var token = this.getToken(true, true);
     if (token.isNotNull()) {
       var prefix = "";
@@ -1016,9 +1018,9 @@ CSSParser.prototype = {
           token = this.getToken(true, true);
           var urlContent = this.parseURL(token);
           if (urlContent) {
-            url += urlContent;
+            url += "url(" + urlContent;
             foundURL = true;
-            s += " " + url;
+            s += " " + urlContent;
           }
         }
       }
@@ -1026,7 +1028,7 @@ CSSParser.prototype = {
         token = this.getToken(true, true);
         if (token.isSymbol(";")) {
           s += ";";
-          this.mScanner.forgetState();
+          this.forgetState();
           var rule = new jscsspNamespaceRule();
           rule.parsedCssText = s;
           rule.prefix = prefix;
@@ -1038,7 +1040,7 @@ CSSParser.prototype = {
       }
 
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     this.addUnknownAtRule(aSheet, "@namespace");
     return false;
   },
@@ -1047,7 +1049,7 @@ CSSParser.prototype = {
     var s = aToken.value;
     var valid = false;
     var descriptors = [];
-    this.mScanner.preserveState();
+    this.preserveState();
     var token = this.getToken(true, true);
     if (token.isNotNull()) {
       // expecting block start
@@ -1068,7 +1070,7 @@ CSSParser.prototype = {
       }
     }
     if (valid) {
-      this.mScanner.forgetState();
+      this.forgetState();
       var rule = new jscsspFontFaceRule();
       rule.parsedCssText = s;
       rule.descriptors = descriptors;
@@ -1076,7 +1078,7 @@ CSSParser.prototype = {
       aSheet.cssRules.push(rule)
       return true;
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     return false;
   },
 
@@ -1084,14 +1086,17 @@ CSSParser.prototype = {
     var s = aToken.value;
     var valid = false;
     var declarations = [];
-    this.mScanner.preserveState();
+    this.preserveState();
     var token = this.getToken(true, true);
     var pageSelector = "";
-    if (token.isSymbol(":")) {
-      token = this.getToken(false, false);
+    if (token.isSymbol(":") || token.isIdent()) {
+      if (token.isSymbol(":")) {
+        pageSelector = ":";
+        token = this.getToken(false, false);
+      }
       if (token.isIdent()) {
-        pageSelector = token.value;
-        s += " :" + token.value;
+        pageSelector += token.value;
+        s += " " + pageSelector;
         token = this.getToken(true, true);
       }
     }
@@ -1114,7 +1119,7 @@ CSSParser.prototype = {
       }
     }
     if (valid) {
-      this.mScanner.forgetState();
+      this.forgetState();
       var rule = new jscsspPageRule();
       rule.parsedCssText = s;
       rule.pageSelector = pageSelector;
@@ -1123,7 +1128,7 @@ CSSParser.prototype = {
       aSheet.cssRules.push(rule)
       return true;
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     return false;
   },
 
@@ -1228,7 +1233,7 @@ CSSParser.prototype = {
       token = this.getToken(false, true);
     }
     if (values.length && valueText) {
-      this.mScanner.forgetState();
+      this.forgetState();
       aDecl.push(this._createJscsspDeclarationFromValuesArray(descriptor, values, valueText));
       return valueText;
     }
@@ -1303,7 +1308,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-top", top));
     aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-right", right));
     aDecl.push(this._createJscsspDeclarationFromValue(aProperty + "-bottom", bottom));
@@ -1378,7 +1383,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue("border-top-color", top));
     aDecl.push(this._createJscsspDeclarationFromValue("border-right-color", right));
     aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-color", bottom));
@@ -1440,7 +1445,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue("cue-before", before));
     aDecl.push(this._createJscsspDeclarationFromValue("cue-after", after));
     return before + " " + after;
@@ -1494,7 +1499,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue("pause-before", before));
     aDecl.push(this._createJscsspDeclarationFromValue("pause-after", after));
     return before + " " + after;
@@ -1565,7 +1570,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue("border-top-width", top));
     aDecl.push(this._createJscsspDeclarationFromValue("border-right-width", right));
     aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-width", bottom));
@@ -1636,7 +1641,7 @@ CSSParser.prototype = {
       default:
         return "";
     }
-    this.mScanner.forgetState();
+    this.forgetState();
     aDecl.push(this._createJscsspDeclarationFromValue("border-top-style", top));
     aDecl.push(this._createJscsspDeclarationFromValue("border-right-style", right));
     aDecl.push(this._createJscsspDeclarationFromValue("border-bottom-style", bottom));
@@ -1693,7 +1698,7 @@ CSSParser.prototype = {
     }
 
     // create the declarations
-    this.mScanner.forgetState();
+    this.forgetState();
     bWidth = bWidth ? bWidth : "medium";
     bStyle = bStyle ? bStyle : "none";
     bColor = bColor ? bColor : "-moz-initial";
@@ -1814,7 +1819,7 @@ CSSParser.prototype = {
     }
 
     // create the declarations
-    this.mScanner.forgetState();
+    this.forgetState();
     bgColor = bgColor ? bgColor : "transparent";
     bgImage = bgImage ? bgImage : "none";
     bgRepeat = bgRepeat ? bgRepeat : "repeat";
@@ -1883,7 +1888,7 @@ CSSParser.prototype = {
     }
 
     // create the declarations
-    this.mScanner.forgetState();
+    this.forgetState();
     lType = lType ? lType : "none";
     lImage = lImage ? lImage : "none";
     lPosition = lPosition ? lPosition : "outside";
@@ -2042,7 +2047,7 @@ CSSParser.prototype = {
     }
 
     // create the declarations
-    this.mScanner.forgetState();
+    this.forgetState();
     if (fSystem) {
       aDecl.push(this._createJscsspDeclarationFromValue("font", fSystem));
       return fSystem;
@@ -2264,7 +2269,7 @@ CSSParser.prototype = {
   },
 
   parseDeclaration: function(aToken, aDecl, aAcceptPriority, aExpandShorthands, aSheet) {
-    this.mScanner.preserveState();
+    this.preserveState();
     var blocks = [];
     if (aToken.isIdent()) {
       var descriptor = aToken.value.toLowerCase();
@@ -2347,7 +2352,7 @@ CSSParser.prototype = {
     }
     else if (aToken.isComment()) {
       if (this.mPreserveComments) {
-        this.mScanner.forgetState();
+        this.forgetState();
         var comment = new jscsspComment();
         comment.parsedCssText = aToken.value;
         aDecl.push(comment);
@@ -2356,7 +2361,7 @@ CSSParser.prototype = {
     }
 
     // we have an error here, let's skip it
-    this.mScanner.restoreState();
+    this.restoreState();
     var s = aToken.value;
     blocks = [];
     var token = this.getToken(false, false);
@@ -2392,7 +2397,7 @@ CSSParser.prototype = {
     var s = aToken.value;
     var valid = false;
     var mediaRule = new jscsspMediaRule();
-    this.mScanner.preserveState();
+    this.preserveState();
     var token = this.getToken(true, true);
     var foundMedia = false;
     while (token.isNotNull()) {
@@ -2408,20 +2413,20 @@ CSSParser.prototype = {
             this.ungetToken();
           else {
             // error...
-            token = null;
+            token.type = jscsspToken.NULL_TYPE;
             break;
           }
         }
       } else if (token.isSymbol("{"))
         break;
       else if (foundMedia) {
-        token = null;
+        token.type = jscsspToken.NULL_TYPE;
         // not a media list
         break;
       }
       token = this.getToken(true, true);
     }
-    if (token.isSymbol("{")) {
+    if (token.isSymbol("{") && mediaRule.media.length) {
       // ok let's parse style rules now...
       s += " { ";
       token = this.getToken(true, false);
@@ -2443,12 +2448,12 @@ CSSParser.prototype = {
       }
     }
     if (valid) {
-      this.mScanner.forgetState();
+      this.forgetState();
       mediaRule.parsedCssText = s;
       aSheet.cssRules.push(mediaRule);
       return true;
     }
-    this.mScanner.restoreState();
+    this.restoreState();
     return false;
   },
 
@@ -2465,6 +2470,7 @@ CSSParser.prototype = {
 
   parseStyleRule: function(aToken, aOwner, aIsInsideMediaRule)
   {
+    this.preserveState();
     // first let's see if we have a selector here...
     var selector = this.parseSelector(aToken, false);
     var valid = false;
@@ -2493,6 +2499,10 @@ CSSParser.prototype = {
         }
       }
     }
+    else {
+      // selector is invalid so the whole rule is invalid with it
+    }
+
     if (valid) {
       var rule = new jscsspStyleRule();
       rule.parsedCssText = s;
@@ -2505,6 +2515,9 @@ CSSParser.prototype = {
       aOwner.cssRules.push(rule);
       return s;
     }
+    this.restoreState();
+    s = this.currentToken().value;
+    this.addUnknownAtRule(aOwner, s);
     return "";
   },
 
@@ -2679,6 +2692,8 @@ CSSParser.prototype = {
         else
           return null;
       }
+      else
+        return null;
   
       // nothing, =, *=, $=, ^=, |=
       token = this.getToken(true, true);
@@ -2689,22 +2704,45 @@ CSSParser.prototype = {
           || token.isContainsmatch()
           || token.isSymbol("=")) {
         s += token.value;
-      } else
-        return null;
-  
-      token = this.getToken(true, true);
-      if (token.isString() || token.isIdent())
+	      token = this.getToken(true, true);
+	      if (token.isString() || token.isIdent()) {
+	        s += token.value;
+	        token = this.getToken(true, true);
+	      }
+	      else
+	        return null;
+	  
+	      if (token.isSymbol("]"))
+	        s += token.value;
+	      else
+	        return null;
+      }
+      else if (token.isSymbol("]"))
         s += token.value;
       else
         return null;
-  
-      token = this.getToken(true, true);
-      if (token.isSymbol("]"))
-        s += token.value;
-      else
-        return null;
+        
     }
     return s;
+  },
+
+  preserveState: function() {
+    this.mPreservedTokens.push(this.currentToken());
+    this.mScanner.preserveState();
+  },
+
+  restoreState: function() {
+    if (this.mPreservedTokens.length) {
+      this.mScanner.restoreState();
+      this.mToken = this.mPreservedTokens.pop();
+    }
+  },
+
+  forgetState: function() {
+    if (this.mPreservedTokens.length) {
+      this.mScanner.forgetState();
+      this.mPreservedTokens.pop();
+    }
   },
 
   parse: function(aString, aTryToPreserveWhitespaces, aTryToPreserveComments) {
@@ -2713,6 +2751,7 @@ CSSParser.prototype = {
 
     this.mPreserveWS       = aTryToPreserveWhitespaces;
     this.mPreserveComments = aTryToPreserveComments;
+    this.mPreservedTokens = [];
     this.mScanner.init(aString);
     var sheet = new jscsspStylesheet();
 
@@ -2722,6 +2761,7 @@ CSSParser.prototype = {
       return;
     if (token.isAtRule("@charset")) {
       this.parseCharsetRule(token, sheet);
+      token = this.getToken(false, false);
     }
 
     var foundStyleRules = false;
@@ -2790,8 +2830,9 @@ CSSParser.prototype = {
 
       else // plain style rules
       {
-        this.parseStyleRule(token, sheet, false);
-        foundStyleRules = true;
+        var ruleText = this.parseStyleRule(token, sheet, false);
+        if (ruleText)
+          foundStyleRules = true;
       }
       token = this.getToken(false);
     }
@@ -2980,6 +3021,13 @@ jscsspStylesheet.prototype = {
     return rv;
   },
 
+  htmlText: function() {
+    var rv = "";
+    for (var i = 0; i < this.cssRules.length; i++)
+      rv += this.cssRules[i].htmlText() + "<br>";
+    return rv;    
+  },
+
   resolveVariables: function(aMedium) {
 
     function ItemFoundInArray(aArray, aItem) {
@@ -3025,6 +3073,11 @@ jscsspCharsetRule.prototype = {
     return "@charset " + this.encoding + ";";
   },
 
+  htmlText: function() {
+    return "<span class='atrule'>@charset</span>&nbsp;<span class='string'>"
+           + this.encoding + "</span>;"; 
+  },
+
   setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
@@ -3054,6 +3107,10 @@ function jscsspErrorRule()
 jscsspErrorRule.prototype = {
   cssText: function() {
     return this.parsedCssText;
+  },
+
+  htmlText: function() {
+    return "<span class='error'>" + this.parsedCssText + "</span>";
   }
 };
 
@@ -3070,6 +3127,10 @@ function jscsspComment()
 jscsspComment.prototype = {
   cssText: function() {
     return this.parsedCssText;
+  },
+
+  htmlText: function() {
+    return "<span class='comment'>" + this.parsedCssText + "</span>";
   },
 
   setCssText: function(val) {
@@ -3092,6 +3153,17 @@ function jscsspWhitespace()
   this.parentRule = null;
 }
 
+jscsspWhitespace.prototype = {
+  cssText: function() {
+    return this.parsedCssText;
+  },
+
+  htmlText: function() {
+    return this.cssText().replace( / /g , "&nbsp;")
+                         .replace( /\n/g , "<br>");
+  },
+};
+
 /* kJscsspIMPORT_RULE */
 
 function jscsspImportRule()
@@ -3110,6 +3182,16 @@ jscsspImportRule.prototype = {
     return "@import " + (mediaString ? mediaString + " " : "")
                       + this.href
                       + ";";
+  },
+
+  htmlText: function() {
+    var mediaString = "";
+    if (this.media.length)
+	    mediaString = "<span class='medium'>" + this.media.join("</span>, <span class='medium'>")
+	                  + "</span>";
+    return "<span class='atrule'>@import</span> " + (mediaString ? mediaString + " " : "")
+           + "<span class='url'>" + this.href + "</span>"
+           + ";";
   },
 
   setCssText: function(val) {
@@ -3143,9 +3225,15 @@ function jscsspNamespaceRule()
 
 jscsspNamespaceRule.prototype = {
   cssText: function() {
-    return "@namespace" + (this.prefix ? this.prefix + " ": "")
+    return "@namespace " + (this.prefix ? this.prefix + " ": "")
                         + this.url
                         + ";";
+  },
+
+  htmlText: function() {
+    return "<span class='atrule'>@namespace</span> " + (this.prefix ? this.prefix + " ": "")
+                        + "<span class='url'>" + this.url + "</span>"
+                        + ";";    
   },
 
   setCssText: function(val) {
@@ -3184,6 +3272,17 @@ jscsspDeclaration.prototype = {
     "cursor": true,
     "font-family": true,
     "voice-family": true
+  },
+
+  htmlText: function() {
+    var rv = "<span class='property'>" + this.property + "</span>: ";
+    var separator = (this.property in this.kCOMMA_SEPARATED) ? ", " : " ";
+    for (var i = 0; i < this.values.length; i++)
+      if (this.values[i].cssText() != null)
+        rv += (i ? separator : "") + "<span class='value'>" + this.values[i].cssText() + "</span>";
+      else
+        return null;
+    return rv + (this.priority ? " <span class='bang'>!important</span>" : "") + ";";
   },
 
   cssText: function() {
@@ -3237,6 +3336,16 @@ jscsspFontFaceRule.prototype = {
     return rv + gTABS + "}";
   },
 
+  htmlText: function() {
+    var rv = gTABS + "<span class='atrule'>@font-face</span> {<br>";
+    var preservedGTABS = gTABS;
+    gTABS += "&nbsp;&nbsp;";
+    for (var i = 0; i < this.descriptors.length; i++)
+      rv += gTABS + this.descriptors[i].htmlText() + "<br>";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
   setCssText: function(val) {
     var sheet = {cssRules: []};
     var parser = new CSSParser(val);
@@ -3272,6 +3381,20 @@ jscsspMediaRule.prototype = {
     gTABS += "  ";
     for (var i = 0; i < this.cssRules.length; i++)
       rv += gTABS + this.cssRules[i].cssText() + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  htmlText: function() {
+    var mediaString = "";
+    if (this.media.length)
+      mediaString = "<span class='medium'>" + this.media.join("</span>, <span class='medium'>")
+                    + "</span>";
+    var rv = gTABS + "<span class='atrule'>@media</span> " + mediaString + " {<br>";
+    var preservedGTABS = gTABS;
+    gTABS += "&nbsp;&nbsp;";
+    for (var i = 0; i < this.cssRules.length; i++)
+      rv += gTABS + this.cssRules[i].htmlText() + "<br>";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
@@ -3314,6 +3437,19 @@ jscsspStyleRule.prototype = {
       var declText = this.declarations[i].cssText();
       if (declText)
         rv += gTABS + this.declarations[i].cssText() + "\n";
+    }
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  htmlText: function() {
+    var rv = "<span class='selector'>" + this.mSelectorText + "</span> {<br>";
+    var preservedGTABS = gTABS;
+    gTABS += "&nbsp;&nbsp;";
+    for (var i = 0; i < this.declarations.length; i++) {
+      var declText = this.declarations[i].htmlText();
+      if (declText)
+        rv += gTABS + this.declarations[i].htmlText() + "<br>";
     }
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
@@ -3367,12 +3503,25 @@ function jscsspPageRule()
 
 jscsspPageRule.prototype = {
   cssText: function() {
-    var rv = gTABS + "@page " + (this.mediaSelector ? this.mediaSelector : "")
-                   + " {\n";
+    var rv = gTABS + "@page "
+                   + (this.pageSelector ? this.pageSelector + " ": "")
+                   + "{\n";
     var preservedGTABS = gTABS;
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++)
       rv += gTABS + this.declarations[i].cssText() + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+  htmlText: function() {
+    var rv = gTABS + "<span class='atrule'>@page</span> "
+                   + (this.pageSelector ? "<span class='selector'>" + this.pageSelector + "</span> " : "")
+                   + "{<br>";
+    var preservedGTABS = gTABS;
+    gTABS += "&nbsp;&nbsp;";
+    for (var i = 0; i < this.declarations.length; i++)
+      rv += gTABS + this.declarations[i].htmlText() + "<br>";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
@@ -3415,6 +3564,22 @@ jscsspVariablesRule.prototype = {
     gTABS += "  ";
     for (var i = 0; i < this.declarations.length; i++)
       rv += gTABS + this.declarations[i].cssText() + "\n";
+    gTABS = preservedGTABS;
+    return rv + gTABS + "}";
+  },
+
+ htmlText: function() {
+    var mediaString = "";
+    if (this.media.length)
+      mediaString = "<span class='medium'>" + this.media.join("</span>, <span class='medium'>")
+                    + "</span>";
+    var rv = gTABS + "<span class='atrule'>@variables</span> " +
+                     (mediaString ? mediaString + " " : "") +
+                     "{<br>";
+    var preservedGTABS = gTABS;
+    gTABS += "&nbsp;&nbsp;";
+    for (var i = 0; i < this.declarations.length; i++)
+      rv += gTABS + this.declarations[i].htmlText() + "<br>";
     gTABS = preservedGTABS;
     return rv + gTABS + "}";
   },
