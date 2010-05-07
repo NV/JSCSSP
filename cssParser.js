@@ -2604,7 +2604,7 @@ CSSParser.prototype = {
           if (token.isIdent() || token.isSymbol("*")) {
             // ok we now have a type element or universal
             // selector
-            s += token;
+            s += token.value;
           } else
             // oops that's an error...
             return null;
