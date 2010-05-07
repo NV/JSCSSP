@@ -327,6 +327,9 @@ CSSScanner.prototype = {
           c = this.peek();
         }
       }
+      else if (c == "\n" || c == "\r" || c == "\f") {
+        break;
+      }
       else
         s += c;
 
@@ -2127,8 +2130,19 @@ CSSParser.prototype = {
         token = this.getToken(false, false);
       }
 
-    if (token.isSymbol(")"))
+    if (token.isSymbol(")")) {
+      var v = this.trim11(value);
+      if ((v[0] == "'" && v[v.length -1] == "'") ||
+          (v[0] == '"' && v[v.length -1] == '"'))
+        v = v.substring(1, v.length - 2)
+      var r = new RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?", "");
+      var m = v.match(r)
+      if (m) {
+        if (m[5].match ( /[^a-z0-9\\-_\\.!~\\*'\\(\\)]/g ) )
+          return null;
+      }
       return value + ")";
+    }
     return "";
   },
 
@@ -2723,7 +2737,14 @@ CSSParser.prototype = {
         return null;
         
     }
-    return s;
+    else if (token.isWhiteSpace()) {
+      var t = this.lookAhead(true, true);
+      if (t.isSymbol('{'))
+        return ""
+    }
+    if (s)
+      return s;
+    return null;
   },
 
   preserveState: function() {
