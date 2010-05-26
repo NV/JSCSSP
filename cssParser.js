@@ -227,8 +227,8 @@ CSSScanner.prototype = {
     while (c != -1
            && (this.isIdent(c) || c == CSS_ESCAPE)) {
       if (c == CSS_ESCAPE)
-        s += this.gatherEscape();
-      else
+	      s += this.gatherEscape();
+	    else
         s += c;
       c = this.read();
     }
@@ -1201,17 +1201,17 @@ CSSParser.prototype = {
             return "";
         }
         else {
-          var fn = token.value;
-          token = this.getToken(false, true);
-          var arg = this.parseFunctionArgument(token);
-          if (arg) {
-            valueText += fn + arg;
-            var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, aSheet);
-            value.value = valueText;
-            values.push(value);
-          }
-          else
-            return "";
+	        var fn = token.value;
+	        token = this.getToken(false, true);
+	        var arg = this.parseFunctionArgument(token);
+	        if (arg) {
+	          valueText += fn + arg;
+	          var value = new jscsspVariable(kJscsspPRIMITIVE_VALUE, aSheet);
+	          value.value = fn + arg;
+	          values.push(value);
+	        }
+	        else
+	          return "";
         }
       }
       else if (token.isSymbol("#")) {
@@ -1750,11 +1750,11 @@ CSSParser.prototype = {
 
       else if (!bgColor && !bgRepeat && !bgAttachment && !bgImage && !bgPosition
                && token.isIdent(this.kINHERIT)) {
-        bgColor = this.kINHERIT;
-        bgRepeat = this.kINHERIT;
-        bgAttachment = this.kINHERIT;
-        bgImage = this.kINHERIT;
-        bgPosition = this.kINHERIT;
+		    bgColor = this.kINHERIT;
+		    bgRepeat = this.kINHERIT;
+		    bgAttachment = this.kINHERIT;
+		    bgImage = this.kINHERIT;
+		    bgPosition = this.kINHERIT;
       }
 
       else {
@@ -1943,13 +1943,13 @@ CSSParser.prototype = {
                && !fSize && !fLineHeight && !fFamily
                && !fSystem
                && token.isIdent(this.kINHERIT)) {
-        fStyle = this.kINHERIT;
-        fVariant = this.kINHERIT;
-        fWeight = this.kINHERIT;
-        fSize = this.kINHERIT;
-        fLineHeight = this.kINHERIT;
-        fFamily = this.kINHERIT;
-        fSystem = this.kINHERIT;
+		    fStyle = this.kINHERIT;
+		    fVariant = this.kINHERIT;
+		    fWeight = this.kINHERIT;
+		    fSize = this.kINHERIT;
+		    fLineHeight = this.kINHERIT;
+		    fFamily = this.kINHERIT;
+		    fSystem = this.kINHERIT;
       }
 
       else {
@@ -2294,47 +2294,47 @@ CSSParser.prototype = {
         var value = "";
         var declarations = [];
         if (aExpandShorthands)
-          switch (descriptor) {
-            case "background":
-              value = this.parseBackgroundShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "margin":
-            case "padding":
-              value = this.parseMarginOrPaddingShorthand(token, declarations, aAcceptPriority, descriptor);
-              break;
-            case "border-color":
-              value = this.parseBorderColorShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "border-style":
-              value = this.parseBorderStyleShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "border-width":
-              value = this.parseBorderWidthShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "border-top":
-            case "border-right":
-            case "border-bottom":
-            case "border-left":
-            case "border":
-            case "outline":
-              value = this.parseBorderEdgeOrOutlineShorthand(token, declarations, aAcceptPriority, descriptor);
-              break;
-            case "cue":
-              value = this.parseCueShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "pause":
-              value = this.parsePauseShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "font":
-              value = this.parseFontShorthand(token, declarations, aAcceptPriority);
-              break;
-            case "list-style":
-              value = this.parseListStyleShorthand(token, declarations, aAcceptPriority);
-              break;
-            default:
-              value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
-              break;
-          }
+	        switch (descriptor) {
+	          case "background":
+	            value = this.parseBackgroundShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "margin":
+	          case "padding":
+	            value = this.parseMarginOrPaddingShorthand(token, declarations, aAcceptPriority, descriptor);
+	            break;
+	          case "border-color":
+	            value = this.parseBorderColorShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-style":
+	            value = this.parseBorderStyleShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-width":
+	            value = this.parseBorderWidthShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "border-top":
+	          case "border-right":
+	          case "border-bottom":
+	          case "border-left":
+	          case "border":
+	          case "outline":
+	            value = this.parseBorderEdgeOrOutlineShorthand(token, declarations, aAcceptPriority, descriptor);
+	            break;
+	          case "cue":
+	            value = this.parseCueShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "pause":
+	            value = this.parsePauseShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "font":
+	            value = this.parseFontShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          case "list-style":
+	            value = this.parseListStyleShorthand(token, declarations, aAcceptPriority);
+	            break;
+	          default:
+	            value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
+	            break;
+	        }
         else
           value = this.parseDefaultPropertyValue(token, declarations, aAcceptPriority, descriptor, aSheet);
         token = this.currentToken();
@@ -2718,18 +2718,18 @@ CSSParser.prototype = {
           || token.isContainsmatch()
           || token.isSymbol("=")) {
         s += token.value;
-        token = this.getToken(true, true);
-        if (token.isString() || token.isIdent()) {
-          s += token.value;
-          token = this.getToken(true, true);
-        }
-        else
-          return null;
-    
-        if (token.isSymbol("]"))
-          s += token.value;
-        else
-          return null;
+	      token = this.getToken(true, true);
+	      if (token.isString() || token.isIdent()) {
+	        s += token.value;
+	        token = this.getToken(true, true);
+	      }
+	      else
+	        return null;
+	  
+	      if (token.isSymbol("]"))
+	        s += token.value;
+	      else
+	        return null;
       }
       else if (token.isSymbol("]"))
         s += token.value;
@@ -3208,8 +3208,8 @@ jscsspImportRule.prototype = {
   htmlText: function() {
     var mediaString = "";
     if (this.media.length)
-      mediaString = "<span class='medium'>" + this.media.join("</span>, <span class='medium'>")
-                    + "</span>";
+	    mediaString = "<span class='medium'>" + this.media.join("</span>, <span class='medium'>")
+	                  + "</span>";
     return "<span class='atrule'>@import</span> " + (mediaString ? mediaString + " " : "")
            + "<span class='url'>" + this.href + "</span>"
            + ";";
@@ -3656,3 +3656,133 @@ jscsspVariable.prototype = {
     return null;
   }
 };
+
+function ParseURL(buffer) {
+  var result = { };
+  result.protocol = "";
+  result.user = "";
+  result.password = "";
+  result.host = "";
+  result.port = "";
+  result.path = "";
+  result.query = "";
+
+  var section = "PROTOCOL";
+  var start = 0;
+  var wasSlash = false;
+
+  while(start < buffer.length) {
+    if(section == "PROTOCOL") {
+      if(buffer.charAt(start) == ':') {
+        section = "AFTER_PROTOCOL";
+        start++;
+      } else if(buffer.charAt(start) == '/' && result.protocol.length() == 0) { 
+        section = PATH;
+      } else {
+        result.protocol += buffer.charAt(start++);
+      }
+    } else if(section == "AFTER_PROTOCOL") {
+      if(buffer.charAt(start) == '/') {
+    if(!wasSlash) {
+          wasSlash = true;
+    } else {
+          wasSlash = false;
+          section = "USER";
+    }
+        start ++;
+      } else {
+        throw new ParseException("Protocol shell be separated with 2 slashes");
+      }       
+    } else if(section == "USER") {
+      if(buffer.charAt(start) == '/') {
+        result.host = result.user;
+        result.user = "";
+        section = "PATH";
+      } else if(buffer.charAt(start) == '?') {
+        result.host = result.user;
+        result.user = "";
+        section = "QUERY";
+        start++;
+      } else if(buffer.charAt(start) == ':') {
+        section = "PASSWORD";
+        start++;
+      } else if(buffer.charAt(start) == '@') {
+        section = "HOST";
+        start++;
+      } else {
+        result.user += buffer.charAt(start++);
+      }
+    } else if(section == "PASSWORD") {
+      if(buffer.charAt(start) == '/') {
+        result.host = result.user;
+        result.port = result.password;
+        result.user = "";
+        result.password = "";
+        section = "PATH";
+      } else if(buffer.charAt(start) == '?') {
+        result.host = result.user;
+        result.port = result.password;
+        result.user = "";
+        result.password = "";
+        section = "QUERY";
+        start ++;
+      } else if(buffer.charAt(start) == '@') {
+        section = "HOST";
+        start++;
+      } else {
+        result.password += buffer.charAt(start++);
+      }
+    } else if(section == "HOST") {
+      if(buffer.charAt(start) == '/') {
+        section = "PATH";
+      } else if(buffer.charAt(start) == ':') {
+        section = "PORT";
+        start++;
+      } else if(buffer.charAt(start) == '?') {
+        section = "QUERY";
+        start++;
+      } else {
+        result.host += buffer.charAt(start++);
+      }
+    } else if(section == "PORT") {
+      if(buffer.charAt(start) = '/') {
+        section = "PATH";
+      } else if(buffer.charAt(start) == '?') {
+        section = "QUERY";
+        start++;
+      } else {
+        result.port += buffer.charAt(start++);
+      }
+    } else if(section == "PATH") {
+      if(buffer.charAt(start) == '?') {
+    section = "QUERY";
+    start ++;
+      } else {
+    result.path += buffer.charAt(start++);
+      }
+    } else if(section == "QUERY") {
+      result.query += buffer.charAt(start++);
+    }
+  }
+
+  if(section == "PROTOCOL") {
+    result.host = result.protocol;
+    result.protocol = "http";
+  } else if(section == "AFTER_PROTOCOL") {
+    throw new ParseException("Invalid url");
+  } else if(section == "USER") {
+    result.host = result.user;
+    result.user = "";
+  } else if(section == "PASSWORD") {
+    result.host = result.user;
+    result.port = result.password;
+    result.user = "";
+    result.password = "";
+  }
+
+  return result;
+}
+
+function ParseException(description) {
+    this.description = description;
+}
