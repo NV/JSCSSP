@@ -108,6 +108,7 @@ CSSScanner.prototype = {
   mString : "",
   mPos : 0,
   mPreservedPos : [],
+  mCurrentLine: 0,
 
   init: function(aString) {
     this.mString = aString;
@@ -396,8 +397,12 @@ CSSScanner.prototype = {
     if (c == "'" || c == '"')
       return this.parseString(c);
 
-    if (this.isWhiteSpace(c))
-      return new jscsspToken(jscsspToken.WHITESPACE_TYPE, this.eatWhiteSpace(c));
+    if (this.isWhiteSpace(c)) {
+      var s = this.eatWhiteSpace(c);
+      this.mCurrentLine += countChar(s);
+      
+      return new jscsspToken(jscsspToken.WHITESPACE_TYPE, s);
+    }
 
     if (c == "|" || c == "~" || c == "^" || c == "$" || c == "*") {
       var nextChar = this.read();
@@ -1340,7 +1345,7 @@ CSSParser.prototype = {
         break;
       }
 
-      else if (!values.length && this.isIdent(this.kINHERIT)) {
+      else if (!values.length && token.isIdent(this.kINHERIT)) {
         values.push(token.value);
         token = this.getToken(true, true);
         break;
@@ -2484,6 +2489,7 @@ CSSParser.prototype = {
 
   parseStyleRule: function(aToken, aOwner, aIsInsideMediaRule)
   {
+    var currentLine = this.mScanner.mCurrentLine;
     this.preserveState();
     // first let's see if we have a selector here...
     var selector = this.parseSelector(aToken, false);
@@ -2519,6 +2525,7 @@ CSSParser.prototype = {
 
     if (valid) {
       var rule = new jscsspStyleRule();
+      rule.currentLine = currentLine;
       rule.parsedCssText = s;
       rule.declarations = declarations;
       rule.mSelectorText = selector;
@@ -2555,16 +2562,7 @@ CSSParser.prototype = {
         break;
       }
 
-      var simpleSelector = this.parseSimpleSelector(token, isFirstInChain, true);
-      if (null == simpleSelector)
-        break; // error
-
-      else if (simpleSelector)
-      {
-        s += simpleSelector;
-      }
-
-      else if (token.isSymbol(",")) {
+      if (token.isSymbol(",")) {
         s += token.value;
         isFirstInChain = true;
         combinatorFound = false;
@@ -2587,6 +2585,12 @@ CSSParser.prototype = {
           combinatorFound = true;
         token = this.getToken(true, true);
         continue;
+      }
+      else {
+        var simpleSelector = this.parseSimpleSelector(token, isFirstInChain, true);
+        if (!simpleSelector)
+          break; // error
+        s += simpleSelector;
       }
 
       isFirstInChain == false;
@@ -3785,4 +3789,14 @@ function ParseURL(buffer) {
 
 function ParseException(description) {
     this.description = description;
+}
+
+function countChar(s){
+
+	var nChar = s.match(/[^\r\n]/g);
+	var nCRLF = s.match(/\r\n/g);
+	if (nChar != null){nChar = nChar.length}else{nChar = 0}
+	if (nCRLF != null){nCRLF = nCRLF.length}else{nCRLF = 0}
+	var nChar = nChar+nCRLF;
+	return nChar;
 }
