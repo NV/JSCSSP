@@ -3800,3 +3800,26 @@ function countChar(s){
 	var nChar = nChar+nCRLF;
 	return nChar;
 }
+
+// CommonJS module
+if (typeof exports != "undefined") {
+  exports.CSSParser = CSSParser;
+  exports.CSSScanner = CSSScanner;
+  exports.jscsspToken = jscsspToken;
+  exports.jscsspStylesheet = jscsspStylesheet;
+  exports.jscsspCharsetRule = jscsspCharsetRule;
+  exports.jscsspErrorRule = jscsspErrorRule;
+  exports.jscsspComment = jscsspComment;
+  exports.jscsspWhitespace = jscsspWhitespace;
+  exports.jscsspImportRule = jscsspImportRule;
+  exports.jscsspNamespaceRule = jscsspNamespaceRule;
+  exports.jscsspDeclaration = jscsspDeclaration;
+  exports.jscsspFontFaceRule = jscsspFontFaceRule;
+  exports.jscsspMediaRule = jscsspMediaRule;
+  exports.jscsspStyleRule = jscsspStyleRule;
+  exports.jscsspPageRule = jscsspPageRule;
+  exports.jscsspVariablesRule = jscsspVariablesRule;
+  exports.jscsspVariable = jscsspVariable;
+  exports.ParseURL = ParseURL;
+  exports.countChar = countChar;
+}
