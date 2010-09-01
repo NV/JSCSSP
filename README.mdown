@@ -38,6 +38,16 @@ cssParser.parse("h1 {color: red}")
 
     $ npm install jscssp
 
+## Tests
+
+    git submodule update --init
+    open test/index.html
+
+To see test results in the console run
+
+    node test/*_test.js
+
 ## Analogs
 
   * [Sheet.js](http://github.com/subtleGradient/Sheet.js)
+
