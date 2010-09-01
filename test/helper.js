@@ -11,15 +11,9 @@ function require_all(name /* [, name]* */) {
 	}
 }
 
-var File = require('file');
-if (File.dirname && File.join) {
-	// Narwhal
-	var dir = File.dirname(module);
-	require.loader.paths.unshift(File.join(dir, '..'));
-	require_all("cssParser");
-}
-
-require_all('assert');
+require_all('../cssParser');
+global.QUnit = require("./QUnit/qunit/qunit.js").QUnit;
+require('./qunit-tap');
 
 global.tests = {};
 global.test = function test (description, func) {

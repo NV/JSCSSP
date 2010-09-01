@@ -3,11 +3,13 @@ if (typeof require != "undefined") {
 }
 
 
-test("h1", function(){
-	var parser = new CSSParser;
-	var h1 = parser.parse("h1 {color: red;}");
-	equal(h1.cssText().trim(), "h1 {\n  color: red;\n}");
-});
+with (QUnit) {
+	test("h1", function(){
+		var parser = new CSSParser;
+		var h1 = parser.parse("h1 {color: red;}");
+		equal(h1.cssText().trim(), "h1 {\n  color: red;\n}");
+	});
+}
 
 
 if (typeof module != "undefined" && typeof require != "undefined" && module === require.main) {
