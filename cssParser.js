@@ -159,7 +159,6 @@ CSSScanner.prototype = {
   },
 
   startsWithIdent: function(aFirstChar, aSecondChar) {
-    var code = aFirstChar.charCodeAt(0);
     return this.isIdentStart(aFirstChar) ||
            (aFirstChar == "-" && this.isIdentStart(aSecondChar));
   },
@@ -314,7 +313,7 @@ CSSScanner.prototype = {
         if (c == -1)
           break;
         else if (c == "\n" || c == "\r" || c == "\f") {
-          d = c;
+          var d = c;
           c = this.read();
           // special for Opera that preserves \r\n...
           if (d == "\r") {
@@ -383,7 +382,7 @@ CSSScanner.prototype = {
       if (this.isDigit(nextChar))
         return this.parseNumber(c);
       else if (nextChar == "." && c != ".") {
-        firstChar = this.read();
+        var firstChar = this.read();
         var secondChar = this.peek();
         this.pushback();
         if (this.isDigit(secondChar))
@@ -918,7 +917,7 @@ CSSParser.prototype = {
       }
   
       if (token.isSymbol(";") && href && media.length) {
-        s += ";"
+        s += ";";
         this.forgetState();
         var rule = new jscsspImportRule();
         rule.parsedCssText = s;
@@ -995,7 +994,7 @@ CSSParser.prototype = {
       rule.declarations = declarations;
       rule.media = media;
       rule.parentStyleSheet = aSheet;
-      aSheet.cssRules.push(rule)
+      aSheet.cssRules.push(rule);
       return true;
     }
     this.restoreState();
@@ -1004,7 +1003,6 @@ CSSParser.prototype = {
 
   parseNamespaceRule: function(aToken, aSheet) {
     var s = aToken.value;
-    var valid = false;
     this.preserveState();
     var token = this.getToken(true, true);
     if (token.isNotNull()) {
@@ -1083,7 +1081,7 @@ CSSParser.prototype = {
       rule.parsedCssText = s;
       rule.descriptors = descriptors;
       rule.parentStyleSheet = aSheet;
-      aSheet.cssRules.push(rule)
+      aSheet.cssRules.push(rule);
       return true;
     }
     this.restoreState();
@@ -1133,7 +1131,7 @@ CSSParser.prototype = {
       rule.pageSelector = pageSelector;
       rule.declarations = declarations;
       rule.parentStyleSheet = aSheet;
-      aSheet.cssRules.push(rule)
+      aSheet.cssRules.push(rule);
       return true;
     }
     this.restoreState();
@@ -1143,7 +1141,6 @@ CSSParser.prototype = {
   parseDefaultPropertyValue: function(token, aDecl, aAcceptPriority, descriptor, aSheet) {
     var valueText = "";
     var blocks = [];
-    var foundPriority = false;
     var values = [];
     while (token.isNotNull()) {
 
@@ -1405,7 +1402,6 @@ CSSParser.prototype = {
     var after = "";
 
     var values = [];
-    var values = [];
     while (true) {
 
       if (!token.isNotNull())
@@ -1427,7 +1423,7 @@ CSSParser.prototype = {
         values.push(token.value);
 
         else if (token.isFunction("url(")) {
-        var token = this.getToken(true, true);
+        token = this.getToken(true, true);
         var urlContent = this.parseURL(token);
         if (urlContent)
           values.push("url(" + urlContent);
@@ -1464,7 +1460,6 @@ CSSParser.prototype = {
     var before = "";
     var after = "";
 
-    var values = [];
     var values = [];
     while (true) {
 
@@ -2121,7 +2116,7 @@ CSSParser.prototype = {
         if (!token.isNotNull())
           return "";
         if (token.isWhiteSpace()) {
-          nextToken = this.lookAhead(true, true);
+          var nextToken = this.lookAhead(true, true);
           // if next token is not a closing parenthesis, that's an error
           if (!nextToken.isSymbol(")")) {
             token = this.currentToken();
@@ -2139,9 +2134,9 @@ CSSParser.prototype = {
       var v = this.trim11(value);
       if ((v[0] == "'" && v[v.length -1] == "'") ||
           (v[0] == '"' && v[v.length -1] == '"'))
-        v = v.substring(1, v.length - 2)
+        v = v.substring(1, v.length - 2);
       var r = new RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?", "");
-      var m = v.match(r)
+      var m = v.match(r);
       if (m) {
         if (m[5].match ( /[^a-z0-9\\-_\\.!~\\*'\\(\\)]/g ) )
           return null;
@@ -2182,7 +2177,7 @@ CSSParser.prototype = {
     if (token.isFunction("rgb(")
         || token.isFunction("rgba(")) {
       color = token.value;
-      var isRgba = token.isFunction("rgba(")
+      var isRgba = token.isFunction("rgba(");
       token = this.getToken(true, true);
       if (!token.isNumber() && !token.isPercentage())
         return "";
@@ -2227,7 +2222,7 @@ CSSParser.prototype = {
     else if (token.isFunction("hsl(")
              || token.isFunction("hsla(")) {
       color = token.value;
-      var isHsla = token.isFunction("hsla(")
+      var isHsla = token.isFunction("hsla(");
       token = this.getToken(true, true);
       if (!token.isNumber())
         return "";
@@ -2593,7 +2588,7 @@ CSSParser.prototype = {
         s += simpleSelector;
       }
 
-      isFirstInChain == false;
+      isFirstInChain = false;
       combinatorFound = false;
       token = this.getToken(false, true);
     }
@@ -2643,7 +2638,7 @@ CSSParser.prototype = {
       s += token.value;
       token = this.getToken(false, true);
       if (token.isIdent())
-        s += token.value
+        s += token.value;
       else
         return null;
     }
@@ -2656,7 +2651,7 @@ CSSParser.prototype = {
         token = this.getToken(false, true);
       }
       if (token.isIdent())
-        s += token.value
+        s += token.value;
       else if (token.isFunction()) {
         s += token.value;
         if (token.isFunction(":not(")) {
@@ -2692,7 +2687,6 @@ CSSParser.prototype = {
       token = this.getToken(true, true);
       if (token.isIdent() || token.isSymbol("*")) {
         s += token.value;
-        var nextToken = this.getToken(true, true);
         if (token.isSymbol("|")) {
           s += "|";
           token = this.getToken(true, true);
@@ -2995,10 +2989,10 @@ jscsspToken.prototype = {
   {
     return (this.isDimension() && this.unit == aUnit);
   }
-}
+};
 
 var kJscsspUNKNOWN_RULE   = 0;
-var kJscsspSTYLE_RULE     = 1
+var kJscsspSTYLE_RULE     = 1;
 var kJscsspCHARSET_RULE   = 2;
 var kJscsspIMPORT_RULE    = 3;
 var kJscsspMEDIA_RULE     = 4;
@@ -3186,7 +3180,7 @@ jscsspWhitespace.prototype = {
   htmlText: function() {
     return this.cssText().replace( / /g , "&nbsp;")
                          .replace( /\n/g , "<br>");
-  },
+  }
 };
 
 /* kJscsspIMPORT_RULE */
@@ -3447,7 +3441,7 @@ function jscsspStyleRule()
 {
   this.type = kJscsspSTYLE_RULE;
   this.parsedCssText = null;
-  this.declarations = []
+  this.declarations = [];
   this.mSelectorText = null;
   this.parentStyleSheet = null;
   this.parentRule = null;
