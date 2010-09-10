@@ -1,0 +1,3 @@
+    ➤ node github.js
+    JSCSSP 76ms
+    Sheet  21ms
