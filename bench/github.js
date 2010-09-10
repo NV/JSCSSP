@@ -10,14 +10,16 @@ var Sheet = require("Sheet").Sheet;
 
 (function(){
   var start = Date.now();
-  var result = cssParser.parse(github);
+  var dom = cssParser.parse(github);
+  var str = dom.cssText();
   var end = Date.now();
   console.log("JSCSSP " + (end - start) +"ms");
 })();
 
 (function(){
   var start = Date.now();
-  var result = new Sheet(github);
+  var dom = new Sheet(github);
+  var str = dom.toString();
   var end = Date.now();
   console.log("Sheet  " + (end - start) +"ms");
 })();
