@@ -1,27 +1,27 @@
 {
-  "name": "jscssp",
-  "version": "0.5.0",
-  "description": "JSCSSP is a CSS parser. It parses a string containing CSS styles and outputs a CSS Object Model.",
-  "keywords": ["CSS", "CSSOM", "parser"],
-  "author": "Daniel Glazman",
+	"name": "jscssp",
+	"version": "0.5.0",
+	"description": "JSCSSP is a CSS parser. It parses a string containing CSS styles and outputs a CSS Object Model.",
+	"keywords": ["CSS", "CSSOM", "parser"],
+	"author": "Daniel Glazman",
 	"repositories": [
 		{
 			"type": "git",
 			"url": "git://github.com/NV/JSCSSP.git"
 		}
 	],
-  "contributors": [
-	  {
-		  "name": "Daniel Glazman",
-		  "email": "daniel@glazman.org"
-	  }
-  ],
-  "maintainers":[
-	  {
-      "name": "Nikita Vasilyev",
-      "web": "http://elv1s.ru"
-    }
-  ],
+	"contributors": [
+		{
+			"name": "Daniel Glazman",
+			"email": "daniel@glazman.org"
+		}
+	],
+	"maintainers":[
+		{
+			"name": "Nikita Vasilyev",
+			"web": "http://elv1s.ru"
+		}
+	],
 	"licenses": [
 		{
 			"type": "MPL 1.1",
@@ -36,6 +36,6 @@
 			"url": "http://www.gnu.org/licenses/lgpl-2.1.html"
 		}
 	],
-  "main": "cssParser.js",
-  "homepage": "http://www.glazman.org/JSCSSP/"
+	"main": "cssParser.js",
+	"homepage": "http://www.glazman.org/JSCSSP/"
 }
