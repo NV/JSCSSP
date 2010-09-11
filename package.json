@@ -2,7 +2,7 @@
   "name": "jscssp",
   "version": "0.5.0",
   "description": "JSCSSP is a CSS parser. It parses a string containing CSS styles and outputs a CSS Object Model.",
-  "keywords": ["CSS", "parser"],
+  "keywords": ["CSS", "CSSOM", "parser"],
   "author": "Daniel Glazman",
 	"repositories": [
 		{
