@@ -50,4 +50,4 @@ To see test results in the console run
 ## Analogs
 
   * [Sheet.js](http://github.com/subtleGradient/Sheet.js)
-
+  * [CodeMirror's CSS parser](http://codemirror.net/csstest.html)
