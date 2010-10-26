@@ -49,5 +49,6 @@ To see test results in the console run
 
 ## Analogs
 
+  * [CSSOM.js](http://github.com/NV/CSSOM)
   * [Sheet.js](http://github.com/subtleGradient/Sheet.js)
   * [CodeMirror's CSS parser](http://codemirror.net/csstest.html)
