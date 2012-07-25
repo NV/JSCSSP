@@ -2694,8 +2694,7 @@ CSSParser.prototype = {
             s += token.value;
           else
             return null;
-        } else
-          this.ungetToken();
+        }
       } else if (token.isSymbol("|")) {
         s += "|";
         token = this.getToken(true, true);

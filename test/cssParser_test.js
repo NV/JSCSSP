@@ -9,6 +9,12 @@ with (QUnit) {
 		var h1 = parser.parse("h1 {color: red;}");
 		equal(h1.cssText().trim(), "h1 {\n  color: red;\n}");
 	});
+	test("input[name=text]", function(){
+		var parser = new CSSParser;
+		var sheet = parser.parse("input[name=text] {color: red;}");
+		var rule = sheet.cssRules[0];
+		equal(rule.mSelectorText, "input[name=text]");
+	});
 }
 
 
